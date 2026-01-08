@@ -1,64 +1,56 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
-import { AnalysisResult, MaradonTokenResult } from '../types';
 
-// Conexión con la identidad de tu API configurada en Vercel
-const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
-const genAI = new GoogleGenerativeAI(API_KEY);
+ import { GoogleGenerativeAI } from "@google/generative-ai";
 
-/**
- * PRIMER PASO: Negación de Centroides y Análisis de la Base Común
- */
-export const analyzeTextForMaradona = async (text: string): Promise<AnalysisResult> => {
-  // Configuramos el modelo para que devuelva un JSON estructurado
-  const model = genAI.getGenerativeModel({
+const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY || "");
+
+// 1. Función para el Prensayo (Resumen Rápido)
+export const generateQuickSummary = async (text: string): Promise<string> => {
+  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+  const prompt = `Resume los conceptos centrales de este corpus para un "Nensayo" en máximo 60 palabras. Enfócate en las tensiones y puntos de poder que podrían ser negados. Texto: ${text}`;
+  
+  const result = await model.generateContent(prompt);
+  return result.response.text();
+};
+
+// 2. Función de Análisis con Coordenadas para la Constelación
+export const analyzeTextForMaradona = async (text: string) => {
+  const model = genAI.getGenerativeModel({ 
     model: "gemini-1.5-flash",
-    generationConfig: {
-      responseMimeType: "application/json",
-      responseSchema: {
-        type: SchemaType.OBJECT,
-        properties: {
-          concepts: {
-            type: SchemaType.ARRAY,
-            items: {
-              type: SchemaType.OBJECT,
-              properties: {
-                token: { type: SchemaType.STRING },
-                qualities: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } }
-              }
-            }
-          },
-          centroids: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } },
-          centroidExplanation: { type: SchemaType.STRING }
-        }
-      }
-    },
-    systemInstruction: `Eres el Tutor Académico de Gemini Maradon.ar. 
-    Tu tarea es realizar un Análisis No-Lineal. 
-    1. Identifica la 'base común' entre los documentos del corpus.
-    2. Aplica la 'negación de los centroides': no te quedes con lo obvio (el poder o el estatus), busca el significado latente que surge de la curiosidad y el asombro infantil.
-    3. Devuelve una explicación poética pero académica del centroide encontrado.`
+    generationConfig: { responseMimeType: "application/json" }
   });
 
-  const prompt = `Interpela este corpus heterogéneo y encuentra su base común no-lineal: ${text}`;
-  
+  const prompt = `
+    Analiza este texto bajo la lógica de la "IA Interpelada" y la "Negación de Centroides":
+    Texto: "${text}"
+
+    Devuelve un JSON estrictamente con esta estructura:
+    {
+      "centroids": ["lista de 3 centroides de poder social detectados"],
+      "centroidExplanation": "Breve explicación de cómo se negarán estos centroides",
+      "concepts": [
+        {
+          "token": "palabra clave",
+          "qualities": ["cualidad1", "cualidad2"],
+          "position": { "x": número entre -10 y 10, "y": número entre -10 y 10 },
+          "tensionValue": número entre 1 y 10
+        }
+      ]
+    }
+  `;
+
   const result = await model.generateContent(prompt);
   return JSON.parse(result.response.text());
 };
 
-/**
- * SEGUNDO PASO: Generación del Token Maradon.ar (La imagen pulida)
- */
-export const generateMaradonToken = async (text: string, analysis: AnalysisResult): Promise<MaradonTokenResult> => {
-  const model = genAI.getGenerativeModel({
-    model: "gemini-1.5-pro", // Usamos Pro para la síntesis final profunda
-    generationConfig: { responseMimeType: "application/json" },
-    systemInstruction: `Como fase final de la interpelación, debes crear el 'Token Maradon.ar'. 
-    Este token es la síntesis de la negación de los centroides sociales. 
-    Debe sonar como un descubrimiento asombroso que devuelve al sujeto a su estado de curiosidad pura.`
+// 3. Generación del Token Final
+export const generateMaradonToken = async (text: string, analysis: any) => {
+  const model = genAI.getGenerativeModel({ 
+    model: "gemini-1.5-flash",
+    generationConfig: { responseMimeType: "application/json" }
   });
 
-  const prompt = `Basado en el análisis previo (${JSON.stringify(analysis)}), reformula el corpus original en un Token Maradon.ar único: ${text}`;
-  
+  const prompt = `Basado en el análisis previo (${JSON.stringify(analysis)}), genera un "Token Maradon.ar" para este Nensayo: un aforismo o frase corta que capture la esencia negada y el asombro recuperado. Devuelve JSON: {"token": "la frase"}`;
+
   const result = await model.generateContent(prompt);
   return JSON.parse(result.response.text());
 };
