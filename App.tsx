@@ -64,7 +64,6 @@ const App: React.FC = () => {
         setError("El archivo parece estar vacío.");
         return;
       }
-
       const newFiles = [...loadedFiles, { name: file.name, content: text }];
       setLoadedFiles(newFiles);
       
