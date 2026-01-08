@@ -1,86 +1,69 @@
 import React, { useState, useEffect } from 'react';
 import { Step, AnalysisResult, MaradonTokenResult } from './types';
-import { analyzeTextForMaradona, generateMaradonToken } from './services/gemini';
+import { analyzeTextForMaradona, generateMaradonToken, generateQuickSummary } from './services/gemini';
 import mammoth from 'mammoth';
 
-// Definición de tipos globales
-declare global {
-  interface AIStudio {
-    hasSelectedApiKey: () => Promise<boolean>;
-    openSelectKey: () => Promise<void>;
-  }
-  interface Window {
-    aistudio: AIStudio;
-  }
-}
+// --- Componentes de Soporte ---
 
 const Card: React.FC<{ title: string; children: React.ReactNode; className?: string }> = ({ title, children, className = "" }) => (
   <div className={`bg-white rounded-xl shadow-lg border border-slate-200 p-6 ${className}`}>
-    <h3 className="text-xl font-bold text-slate-800 mb-4 border-b pb-2">{title}</h3>
+    <h3 className="text-xl font-bold text-slate-800 mb-4 border-b pb-2 flex justify-between items-center">
+      {title}
+    </h3>
     {children}
   </div>
 );
 
-interface LoadedFile {
-  name: string;
-  content: string;
-}
-
 /**
- * Visualización de Ratios: Cada relación es una entidad única.
+ * Gráfica de Constelación de Tokens (Asombro Visual)
  */
-const RatioVisualizer: React.FC<{ analysis: AnalysisResult }> = ({ analysis }) => {
+const TokenPositionGraph: React.FC<{ analysis: AnalysisResult }> = ({ analysis }) => {
   return (
-    <Card title="Visualización de Ratios y Tensiones" className="overflow-hidden bg-slate-50">
-      <div className="relative h-64 w-full bg-white rounded-xl border border-blue-100 flex items-center justify-center overflow-hidden">
-        {/* La Base Común (Fondo) */}
-        <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#3b82f6_1px,transparent_1px)] [background-size:16px_16px]"></div>
-        
-        <div className="flex flex-wrap justify-center gap-4 p-4 relative z-10">
-          {analysis.concepts.map((concept, i) => {
-            const ratioSize = Math.max(80, Math.min(150, 100 + (concept.qualities.length * 10)));
-            return (
-              <div 
-                key={i}
-                style={{ width: `${ratioSize}px`, height: `${ratioSize}px` }}
-                className="rounded-full bg-blue-500/10 border-2 border-blue-400 flex flex-col items-center justify-center p-2 text-center animate-pulse shadow-inner hover:scale-110 transition-transform cursor-help"
-                title={concept.qualities.join(', ')}
-              >
-                <span className="text-[10px] font-black text-blue-700 uppercase tracking-tighter">
-                  {concept.token}
-                </span>
-                <span className="text-[18px] font-serif italic text-blue-900">
-                  {concept.qualities.length}:1
-                </span>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-      <p className="text-[10px] text-slate-400 mt-4 italic text-center">
-        *Ratios no-lineales calculados sobre la base común del corpus.
-      </p>
-    </Card>
+    <div className="relative h-80 w-full bg-slate-900 rounded-xl overflow-hidden border-2 border-blue-500/30">
+      <div className="absolute inset-0 opacity-20 bg-[radial-gradient(#3b82f6_1px,transparent_1px)] [background-size:20px_20px]"></div>
+      <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 100">
+        {analysis.concepts.map((concept, i) => {
+          // Si la IA no envía coordenadas, las generamos pseudo-aleatorias basadas en el nombre
+          const x = concept.position?.x !== undefined ? (concept.position.x + 10) * 5 : (i * 25) % 90 + 5;
+          const y = concept.position?.y !== undefined ? (concept.position.y + 10) * 5 : (i * 35) % 90 + 5;
+          const size = concept.tensionValue ? 2 + (concept.tensionValue * 0.5) : 4;
+          
+          return (
+            <g key={i} className="animate-pulse" style={{ animationDelay: `${i * 0.5}s` }}>
+              <circle cx={x} cy={y} r={size} fill="#3b82f6" fillOpacity="0.4" stroke="#60a5fa" strokeWidth="0.5" />
+              <text x={x} y={y - size - 1} textAnchor="middle" fontSize="3" fill="#93c5fd" fontWeight="bold" className="pointer-events-none">
+                {concept.token}
+              </text>
+            </g>
+          );
+        })}
+      </svg>
+      <div className="absolute bottom-2 right-3 text-[9px] text-blue-400 font-mono">MAPA_NO_LINEAL_V2.0</div>
+    </div>
   );
 };
+
+// --- App Principal ---
 
 const App: React.FC = () => {
   const [hasKey, setHasKey] = useState<boolean | null>(null);
   const [step, setStep] = useState<Step>(Step.UPLOAD);
-  const [loadedFiles, setLoadedFiles] = useState<LoadedFile[]>([]);
-  const [manualText, setManualText] = useState('');
+  const [loadedFiles, setLoadedFiles] = useState<{name: string, content: string}[]>([]);
+  const [preSummary, setPreSummary] = useState('');
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
   const [tokenResult, setTokenResult] = useState<MaradonTokenResult | null>(null);
   const [loading, setLoading] = useState(false);
+  const [isSummarizing, setIsSummarizing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Verificación de API Key
   useEffect(() => {
     const checkKey = async () => {
       if (import.meta.env.VITE_GEMINI_API_KEY) {
         setHasKey(true);
       } else {
         try {
-          if (window.aistudio && typeof window.aistudio.hasSelectedApiKey === 'function') {
+          if (window.aistudio) {
             const selected = await window.aistudio.hasSelectedApiKey();
             setHasKey(selected);
           } else { setHasKey(false); }
@@ -95,21 +78,34 @@ const App: React.FC = () => {
     if (!files) return;
     Array.from(files).forEach(async (file) => {
       try {
+        let text = "";
         if (file.name.toLowerCase().endsWith('.docx')) {
           const arrayBuffer = await file.arrayBuffer();
           const result = await mammoth.extractRawText({ arrayBuffer });
-          setLoadedFiles(prev => [...prev, { name: file.name, content: result.value }]);
+          text = result.value;
         } else {
-          const reader = new FileReader();
-          reader.onload = (event) => setLoadedFiles(prev => [...prev, { name: file.name, content: event.target?.result as string }]);
-          reader.readAsText(file);
+          text = await file.text();
         }
-      } catch (err) { setError(`Error en ${file.name}`); }
+        
+        const newFiles = [...loadedFiles, { name: file.name, content: text }];
+        setLoadedFiles(newFiles);
+        
+        // Generación automática del Prensayo (Resumen)
+        setIsSummarizing(true);
+        const summary = await generateQuickSummary(newFiles.map(f => f.content).join("\n"));
+        setPreSummary(summary);
+        setIsSummarizing(false);
+      } catch (err) { setError(`Error cargando ${file.name}`); }
     });
   };
 
+  const removeFile = (index: number) => {
+    setLoadedFiles(prev => prev.filter((_, i) => i !== index));
+    if (loadedFiles.length <= 1) setPreSummary('');
+  };
+
   const runAnalysis = async () => {
-    const fullCorpus = [...loadedFiles.map(f => f.content), manualText].filter(t => t.trim()).join('\n\n--- NUEVO ---\n\n');
+    const fullCorpus = loadedFiles.map(f => f.content).join('\n') + "\n" + preSummary;
     setLoading(true); setStep(Step.ANALYZING);
     try {
       const result = await analyzeTextForMaradona(fullCorpus);
@@ -122,7 +118,7 @@ const App: React.FC = () => {
     if (!analysis) return;
     setLoading(true); setStep(Step.GENERATING_TOKEN);
     try {
-      const fullCorpus = [...loadedFiles.map(f => f.content), manualText].join('\n\n');
+      const fullCorpus = loadedFiles.map(f => f.content).join('\n');
       const result = await generateMaradonToken(fullCorpus, analysis);
       setTokenResult(result); setStep(Step.FINAL_REFORMULATION);
     } catch (err) { setError("Error en el Token."); setStep(Step.RESULT_CENTROID); }
@@ -130,86 +126,113 @@ const App: React.FC = () => {
   };
 
   const reset = () => {
-    setStep(Step.UPLOAD); setLoadedFiles([]); setManualText(''); setAnalysis(null); setTokenResult(null); setError(null);
+    setStep(Step.UPLOAD); setLoadedFiles([]); setPreSummary(''); setAnalysis(null); setTokenResult(null); setError(null);
   };
 
   if (hasKey === false) {
     return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
-        <div className="max-w-md w-full bg-white rounded-3xl p-8 text-center space-y-4">
-          <div className="text-6xl animate-bounce">🔑</div>
-          <h2 className="text-2xl font-black">Conexión Maradon.ar</h2>
-          <button onClick={() => window.aistudio?.openSelectKey()} className="w-full bg-blue-600 text-white py-4 rounded-2xl font-bold hover:bg-blue-700">Configurar API Key</button>
-        </div>
+      <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4 text-center">
+        <Card title="🔑 Soberanía Técnica" className="max-w-md">
+          <p className="mb-4 text-slate-600">No se detectó una API Key en el entorno.</p>
+          <button onClick={() => window.aistudio?.openSelectKey()} className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold">Vincular con AI Studio</button>
+        </Card>
       </div>
     );
   }
 
   return (
     <div className="min-h-screen flex flex-col font-sans bg-slate-50">
-      <header className="bg-gradient-to-r from-blue-700 to-sky-500 text-white py-6 px-4 shadow-md sticky top-0 z-50">
+      <header className="bg-slate-900 text-white py-6 px-4 border-b-4 border-blue-500 shadow-2xl">
         <div className="max-w-6xl mx-auto flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-black tracking-tight">Gemini Maradon.ar</h1>
-            <p className="text-blue-100 text-sm italic">Tutor de Análisis No-Lineal</p>
-          </div>
-          {step !== Step.UPLOAD && <button onClick={reset} className="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-full text-sm font-bold">Nuevo Inicio</button>}
+          <h1 className="text-2xl font-black italic tracking-tighter">GEMINI MARADON.AR</h1>
+          {step !== Step.UPLOAD && <button onClick={reset} className="text-xs uppercase tracking-widest border border-white/30 px-3 py-1 rounded hover:bg-white/10">Reiniciar</button>}
         </div>
       </header>
 
-      <main className="flex-1 max-w-6xl w-full mx-auto p-4 md:p-8 space-y-8">
-        {error && <div className="bg-red-50 border-l-4 border-red-500 p-4 text-red-700">{error}</div>}
+      <main className="flex-1 max-w-6xl w-full mx-auto p-4 md:p-8">
+        {error && <div className="bg-red-500 text-white p-4 rounded-xl mb-6 animate-pulse font-bold">⚠️ {error}</div>}
 
         {step === Step.UPLOAD && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
-            <Card title="1. Cargar Corpus Heterogéneo">
-              <div className="border-2 border-dashed border-slate-300 rounded-xl p-8 text-center relative hover:border-blue-400 cursor-pointer">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <Card title="1. Corpus Heterogéneo">
+              <div className="border-4 border-dashed border-slate-200 rounded-2xl p-10 text-center hover:border-blue-500 transition-colors relative group">
                 <input type="file" multiple onChange={handleFileUpload} className="absolute inset-0 opacity-0 cursor-pointer" />
-                <span className="text-4xl block">📂</span>
-                <p className="font-bold">Arrastra tus archivos</p>
+                <span className="text-5xl block group-hover:scale-110 transition-transform">📄</span>
+                <p className="mt-4 font-bold text-slate-400">Sumar archivos al Nensayo</p>
               </div>
-              <div className="mt-4 space-y-1">
-                {loadedFiles.map((f, i) => <div key={i} className="text-xs bg-slate-100 p-2 rounded flex justify-between"><span>📄 {f.name}</span></div>)}
+              <div className="mt-6 space-y-2">
+                {loadedFiles.map((f, i) => (
+                  <div key={i} className="flex justify-between items-center bg-slate-100 p-3 rounded-lg border">
+                    <span className="text-xs font-mono truncate mr-2">/ {f.name}</span>
+                    <button onClick={() => removeFile(i)} className="text-red-500 hover:text-red-700 font-bold">×</button>
+                  </div>
+                ))}
               </div>
             </Card>
-            <Card title="2. Contexto de Asombro">
-              <textarea className="w-full h-32 p-3 border rounded-lg text-sm" placeholder="Reflexiones..." value={manualText} onChange={(e) => setManualText(e.target.value)} />
-              <button disabled={loading || (loadedFiles.length === 0 && !manualText)} onClick={runAnalysis} className="w-full mt-4 bg-blue-600 text-white py-4 rounded-xl font-bold shadow-lg">Iniciar Negación de Centroides</button>
+
+            <Card title="2. Prensayo (Resumen Central)">
+              <div className="relative">
+                <textarea 
+                  className={`w-full h-48 p-4 border rounded-xl text-sm font-serif bg-slate-50 transition-opacity ${isSummarizing ? 'opacity-30' : 'opacity-100'}`}
+                  placeholder="La IA generará un resumen aquí al cargar archivos..." 
+                  value={preSummary} 
+                  onChange={(e) => setPreSummary(e.target.value)} 
+                />
+                {isSummarizing && <div className="absolute inset-0 flex items-center justify-center font-bold text-blue-600 animate-pulse italic">Escaneando base común...</div>}
+              </div>
+              <button 
+                disabled={loading || loadedFiles.length === 0} 
+                onClick={runAnalysis} 
+                className="w-full mt-6 bg-blue-600 text-white py-5 rounded-2xl font-black text-lg shadow-xl hover:bg-blue-700 active:scale-95 transition-all disabled:opacity-30"
+              >
+                EJECUTAR TORSIÓN →
+              </button>
             </Card>
           </div>
         )}
 
         {loading && (
-          <div className="text-center py-20">
-            <div className="animate-spin h-16 w-16 border-t-4 border-blue-600 rounded-full mx-auto"></div>
-            <p className="mt-4 text-slate-600 italic">Negando centroides...</p>
+          <div className="py-20 text-center space-y-4">
+            <div className="w-20 h-20 border-8 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+            <p className="text-xl font-black italic text-slate-800 animate-pulse">NEGANDO CENTROIDES SOCIALES...</p>
           </div>
         )}
 
         {step === Step.RESULT_CENTROID && analysis && (
-          <div className="space-y-6 animate-in fade-in zoom-in-95">
+          <div className="space-y-8 animate-in zoom-in-95 duration-500">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="md:col-span-2">
-                <Card title="Mapa Conceptual No-Lineal">
-                  <div className="italic text-slate-700">"{analysis.centroidExplanation}"</div>
-                </Card>
-              </div>
-              <Card title="Centroides" className="bg-blue-50">
-                <ul className="text-sm space-y-2">
-                  {analysis.centroids.map((c, i) => <li key={i} className="flex items-center gap-2"><span className="h-2 w-2 bg-blue-500 rounded-full animate-ping"></span>{c}</li>)}
+              <Card title="Explicación del Giro" className="md:col-span-2">
+                <p className="text-lg leading-relaxed font-serif">{analysis.centroidExplanation}</p>
+              </Card>
+              <Card title="Centroides Negados" className="bg-slate-900 text-white border-none">
+                <ul className="space-y-3">
+                  {analysis.centroids.map((c, i) => (
+                    <li key={i} className="flex items-center gap-3 text-sm font-bold">
+                      <span className="w-2 h-2 bg-blue-400 rounded-full shadow-[0_0_8px_#60a5fa]"></span> {c}
+                    </li>
+                  ))}
                 </ul>
               </Card>
             </div>
-            <RatioVisualizer analysis={analysis} />
-            <div className="flex justify-center"><button onClick={runMaradonToken} className="bg-slate-900 text-white px-12 py-6 rounded-2xl font-bold hover:bg-blue-700 transition-all">Consolidar en Token Maradon.ar →</button></div>
+            
+            <TokenPositionGraph analysis={analysis} />
+
+            <div className="flex justify-center">
+              <button onClick={runMaradonToken} className="bg-blue-600 text-white px-10 py-5 rounded-full font-black text-xl hover:shadow-[0_0_30px_rgba(59,130,246,0.5)] transition-all">
+                CONSOLIDAR TOKEN MARADON.AR
+              </button>
+            </div>
           </div>
         )}
 
         {step === Step.FINAL_REFORMULATION && tokenResult && (
-          <div className="max-w-3xl mx-auto animate-in slide-in-from-top-4">
-             <Card title="Token Maradon.ar" className="bg-gradient-to-br from-white to-blue-50 border-2 border-blue-200 text-lg italic text-center">
-                {tokenResult.token}
-             </Card>
+          <div className="max-w-2xl mx-auto space-y-10 py-10">
+            <div className="bg-white p-12 rounded-[3rem] shadow-2xl border-4 border-blue-600 relative overflow-hidden text-center">
+              <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-blue-400 to-sky-600"></div>
+              <span className="text-xs font-black text-blue-500 uppercase tracking-[0.3em]">Token Final</span>
+              <h2 className="text-4xl font-serif italic mt-4 text-slate-800">"{tokenResult.token}"</h2>
+            </div>
+            <button onClick={reset} className="w-full text-slate-400 hover:text-blue-600 font-bold uppercase text-xs tracking-widest">Iniciar nuevo ciclo de asombro</button>
           </div>
         )}
       </main>
