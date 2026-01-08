@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI, SchemaType } from "@google/generative-ai";
+import { GoogleGenerativeAI } from "@google/generative-ai";;
 import { AnalysisResult, MaradonTokenResult } from '../types';
 
 // Conexión con la identidad de tu API configurada en Vercel
