@@ -4,7 +4,7 @@ const apiKey = import.meta.env.VITE_GEMINI_API_KEY || "";
 const genAI = new GoogleGenerativeAI(apiKey);
 
 // Cambiamos a gemini-1.5-flash (sin el v1beta en el string del modelo)
-const MODEL_NAME = "gemini-1.5-flash"; 
+const MODEL_NAME = "gemini-2.5-flash"; 
 
 export const generateQuickSummary = async (text: string): Promise<string> => {
   if (!apiKey) throw new Error("API Key no detectada. Verifica Vercel.");
