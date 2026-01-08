@@ -38,28 +38,18 @@ const App: React.FC = () => {
 
   // EFECTO MODIFICADO: Prioriza la variable de Vercel para el "asombro" inmediato
   useEffect(() => {
-    const checkKey = async () => {
-      // 1. Intentar leer la llave de Maradon.ar desde Vercel
-      const envKey = import.meta.env.VITE_GEMINI_API_KEY;
-      
-      if (envKey) {
-        setHasKey(true);
-      } else {
-        // 2. Fallback por si se ejecuta dentro de AI Studio
-        try {
-          if (window.aistudio) {
-            const selected = await window.aistudio.hasSelectedApiKey();
-            setHasKey(selected);
-          } else {
-            setHasKey(false);
-          }
-        } catch {
-          setHasKey(false);
-        }
-      }
-    };
-    checkKey();
-  }, []);
+  const checkKey = () => {
+    // Si estamos en Vercel, usamos la variable ambiental que configuraste
+    if (import.meta.env.VITE_GEMINI_API_KEY) {
+      setHasKey(true);
+    } else {
+      // Si no hay variable, buscamos AI Studio con seguridad
+      const selected = !!window.aistudio;
+      setHasKey(selected);
+    }
+  };
+  checkKey();
+}, []);
 
   const handleOpenKeySelector = async () => {
     if (window.aistudio) {
