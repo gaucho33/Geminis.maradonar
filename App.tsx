@@ -47,23 +47,39 @@ const App: React.FC = () => {
   }, []);
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files) return;
-    Array.from(files).forEach(async (file) => {
-      try {
-        let text = file.name.endsWith('.docx') 
-          ? (await mammoth.extractRawText({ arrayBuffer: await file.arrayBuffer() })).value 
-          : await file.text();
-        
-        const newFiles = [...loadedFiles, { name: file.name, content: text }];
-        setLoadedFiles(newFiles);
-        setIsSummarizing(true);
-        const summary = await generateQuickSummary(newFiles.map(f => f.content).join("\n"));
-        setPreSummary(summary);
-        setIsSummarizing(false);
-      } catch (err) { setError(`Error en ${file.name}`); }
-    });
-  };
+  const files = e.target.files;
+  if (!files) return;
+  
+  Array.from(files).forEach(async (file) => {
+    try {
+      let text = "";
+      if (file.name.endsWith('.docx')) {
+        const result = await mammoth.extractRawText({ arrayBuffer: await file.arrayBuffer() });
+        text = result.value;
+      } else {
+        text = await file.text();
+      }
+
+      if (!text.trim()) {
+        setError("El archivo parece estar vacío.");
+        return;
+      }
+
+      const newFiles = [...loadedFiles, { name: file.name, content: text }];
+      setLoadedFiles(newFiles);
+      
+      setIsSummarizing(true);
+      // Aquí es donde llama a la IA:
+      const summary = await generateQuickSummary(text); 
+      setPreSummary(summary);
+      setIsSummarizing(false);
+      setError(null); // Limpiamos errores previos si hubo éxito
+    } catch (err) { 
+      console.error(err);
+      setError("Error al procesar el archivo. Revisa la consola (F12)."); 
+    }
+  });
+};
 
   const removeFile = (index: number) => {
     setLoadedFiles(prev => prev.filter((_, i) => i !== index));
