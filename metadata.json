@@ -1,0 +1,8 @@
+{
+  "name": "Gemini Maradon.ar",
+  "description": "An academic analysis tool for university students that uses a specific 'centroid negation' logic to reformulate theories and stimulate critical research.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
