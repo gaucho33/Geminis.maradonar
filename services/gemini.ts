@@ -1,88 +1,64 @@
+import { GoogleGenerativeAI, SchemaType } from "@google/generative-ai";
+import { AnalysisResult, MaradonTokenResult } from '../types';
 
-import { GoogleGenAI, Type } from "@google/genai";
-import { AnalysisResult, MaradonTokenResult } from "../types";
+// Conexión con la identidad de tu API configurada en Vercel
+const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
+const genAI = new GoogleGenerativeAI(API_KEY);
 
+/**
+ * PRIMER PASO: Negación de Centroides y Análisis de la Base Común
+ */
 export const analyzeTextForMaradona = async (text: string): Promise<AnalysisResult> => {
-  // Se instancia justo antes de la llamada según las directrices de seguridad
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-  
-  const response = await ai.models.generateContent({
-    model: 'gemini-3-flash-preview',
-    contents: `Analiza el siguiente texto académico aplicando la lógica de "Gemini Maradon.ar":
-    1. Identifica los conceptos (tokens) centrales.
-    2. Para cada concepto, identifica sus "cualidades" (conceptos o términos que aparecen cercanos en el texto y lo definen por asociación).
-    3. Busca uno o más "Centroides" que sinteticen las CUALIDADES encontradas (no los conceptos centrales en sí, sino el núcleo de lo que esas cualidades representan).
-    4. Explica brevemente el trabajo original basándote estrictamente en estos centroides.
-
-    TEXTO:
-    ${text}`,
-    config: {
+  // Configuramos el modelo para que devuelva un JSON estructurado
+  const model = genAI.getGenerativeModel({
+    model: "gemini-1.5-flash",
+    generationConfig: {
       responseMimeType: "application/json",
       responseSchema: {
-        type: Type.OBJECT,
+        type: SchemaType.OBJECT,
         properties: {
           concepts: {
-            type: Type.ARRAY,
+            type: SchemaType.ARRAY,
             items: {
-              type: Type.OBJECT,
+              type: SchemaType.OBJECT,
               properties: {
-                token: { type: Type.STRING },
-                qualities: { type: Type.ARRAY, items: { type: Type.STRING } }
-              },
-              required: ["token", "qualities"]
+                token: { type: SchemaType.STRING },
+                qualities: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } }
+              }
             }
           },
-          centroids: { type: Type.ARRAY, items: { type: Type.STRING } },
-          centroidExplanation: { type: Type.STRING }
-        },
-        required: ["concepts", "centroids", "centroidExplanation"]
+          centroids: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } },
+          centroidExplanation: { type: SchemaType.STRING }
+        }
       }
-    }
+    },
+    systemInstruction: `Eres el Tutor Académico de Gemini Maradon.ar. 
+    Tu tarea es realizar un Análisis No-Lineal. 
+    1. Identifica la 'base común' entre los documentos del corpus.
+    2. Aplica la 'negación de los centroides': no te quedes con lo obvio (el poder o el estatus), busca el significado latente que surge de la curiosidad y el asombro infantil.
+    3. Devuelve una explicación poética pero académica del centroide encontrado.`
   });
 
-  const jsonStr = response.text || "{}";
-  return JSON.parse(jsonStr);
+  const prompt = `Interpela este corpus heterogéneo y encuentra su base común no-lineal: ${text}`;
+  
+  const result = await model.generateContent(prompt);
+  return JSON.parse(result.response.text());
 };
 
-export const generateMaradonToken = async (
-  originalText: string,
-  analysis: AnalysisResult
-): Promise<MaradonTokenResult> => {
-  // Se instancia de nuevo para asegurar que tiene la clave del diálogo si cambió
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-
-  const response = await ai.models.generateContent({
-    model: 'gemini-3-pro-preview',
-    contents: `Actúa como el tutor académico de "Gemini Maradon.ar". 
-    Usando el análisis previo:
-    Conceptos y Cualidades: ${JSON.stringify(analysis.concepts)}
-    Centroides: ${JSON.stringify(analysis.centroids)}
-
-    Tu tarea es generar el "Token Maradon.ar":
-    1. Niega los centroides encontrados (invierte su significado lógico o funcional).
-    2. Vincula esta negación con las cualidades originales de los conceptos centrales (afinidad estadística).
-    3. Reformula la teoría o idea central del texto original basándote en esta negación.
-    4. Propón una demostración (matemática, lógica o teórica) de esta nueva hipótesis.
-    5. Brinda una bibliografía sugerida que pueda sustentar o contrastar esta nueva perspectiva.
-    6. Desafía al estudiante a proponer sus propias fórmulas o hipótesis complementarias.
-
-    Sé estimulante, riguroso y académico.`,
-    config: {
-      responseMimeType: "application/json",
-      responseSchema: {
-        type: Type.OBJECT,
-        properties: {
-          negatedCentroids: { type: Type.ARRAY, items: { type: Type.STRING } },
-          reformulation: { type: Type.STRING },
-          demonstration: { type: Type.STRING },
-          suggestedBibliography: { type: Type.ARRAY, items: { type: Type.STRING } },
-          challengeForStudent: { type: Type.STRING }
-        },
-        required: ["negatedCentroids", "reformulation", "demonstration", "suggestedBibliography", "challengeForStudent"]
-      }
-    }
+/**
+ * SEGUNDO PASO: Generación del Token Maradon.ar (La imagen pulida)
+ */
+export const generateMaradonToken = async (text: string, analysis: AnalysisResult): Promise<MaradonTokenResult> => {
+  const model = genAI.getGenerativeModel({
+    model: "gemini-1.5-pro", // Usamos Pro para la síntesis final profunda
+    generationConfig: { responseMimeType: "application/json" },
+    systemInstruction: `Como fase final de la interpelación, debes crear el 'Token Maradon.ar'. 
+    Este token es la síntesis de la negación de los centroides sociales. 
+    Debe sonar como un descubrimiento asombroso que devuelve al sujeto a su estado de curiosidad pura.`
   });
 
-  const jsonStr = response.text || "{}";
-  return JSON.parse(jsonStr);
+  const prompt = `Basado en el análisis previo (${JSON.stringify(analysis)}), reformula el corpus original en un Token Maradon.ar único: ${text}`;
+  
+  const result = await model.generateContent(prompt);
+  return JSON.parse(result.response.text());
 };
