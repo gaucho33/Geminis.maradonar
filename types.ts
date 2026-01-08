@@ -1,27 +1,24 @@
+export enum Step {
+  UPLOAD,
+  ANALYZING,
+  RESULT_CENTROID,
+  GENERATING_TOKEN,
+  FINAL_REFORMULATION
+}
 
 export interface Concept {
   token: string;
   qualities: string[];
+  position: { x: number; y: number }; // <-- Obligatorio para la gráfica
+  tensionValue: number;               // <-- Obligatorio para el tamaño
 }
 
 export interface AnalysisResult {
-  concepts: Concept[];
   centroids: string[];
   centroidExplanation: string;
+  concepts: Concept[];
 }
 
 export interface MaradonTokenResult {
-  negatedCentroids: string[];
-  reformulation: string;
-  demonstration: string;
-  suggestedBibliography: string[];
-  challengeForStudent: string;
-}
-
-export enum Step {
-  UPLOAD = 'UPLOAD',
-  ANALYZING = 'ANALYZING',
-  RESULT_CENTROID = 'RESULT_CENTROID',
-  GENERATING_TOKEN = 'GENERATING_TOKEN',
-  FINAL_REFORMULATION = 'FINAL_REFORMULATION'
+  token: string;
 }
