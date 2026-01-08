@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Step, AnalysisResult, MaradonTokenResult } from './types';
-import { analyzeTextForMaradona, generateMaradonToken, generateQuickSummary } from './geminis';
+import { analyzeTextForMaradona, generateMaradonToken, generateQuickSummary } from './gemini';
 import mammoth from 'mammoth';
 
 const Card: React.FC<{ title: string; children: React.ReactNode; className?: string }> = ({ title, children, className = "" }) => (
