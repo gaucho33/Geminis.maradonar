@@ -33,7 +33,7 @@ export const analyzeTextForMaradona = async (text: string) => {
       Actúa como un motor de análisis topológico.
       1. Extrae los conceptos de importancia (1, 2, 3...) y sus cualidades específicas (a, b, c...) definidas por el autor.
       2. Define el Centroide C no por los conceptos, sino por la afinidad matemática de la nube de cualidades {a1, b1, c1, a2, b2, c2...}.
-      3. Niega el Centroide C y reconstruye la teoría manteniendo la proximidad con las cualidades originales.
+      3. Niega el Centroide C y reconstruye la teoría proponiendo nuevas cualidades de la proximidad del centroide negado con las cualidades originales.
       
       Texto: "${text}"
 
