@@ -91,18 +91,23 @@ export const generateMaradonToken = async (analysis: any) => {
     },
   });
 
-  const prompt = `Actúa como el tutor académico de "Gemini Maradon.ar". 
-    Usando el análisis previo:
-    Conceptos y Cualidades: ${JSON.stringify(analysis.concepts)}
-    Centroides: ${JSON.stringify(analysis.centroids)}
+  const prompt = `
+    INSTRUCCIÓN DE CONTROL: Prohibido usar jerga futbolística o lenguaje coloquial. 
+    Actúa como un epistemólogo que opera sobre una topología de conceptos.
 
-    Tarea:
-    1. Niega los centroides (invierte su lógica).
-    2. Vincula la negación con las cualidades originales (afinidad estadística).
-    3. Reformula la teoría original basándote en esta negación.
-    4. Propón una demostración teórica de esta nueva hipótesis.
-    5. Brinda bibliografía sugerida.
-    6. Desafía al estudiante a proponer sus propias fórmulas.`;
+    BASES:
+    - Cualidades extraídas: ${JSON.stringify(analysis.concepts)}
+    - Centroides de afinidad (C): ${JSON.stringify(analysis.centroids)}
+
+    OPERACIÓN LÓGICA:
+    1. Define el opuesto funcional de los centroides (Negación ¬C).
+    2. REFORMULACIÓN: Redacta una tesis académica que reconstruya el texto original bajo la óptica de ¬C, pero manteniendo las cualidades (a, b, c) de los conceptos originales.
+    3. DEMOSTRACIÓN: Desarrolla una prueba lógica o matemática (ej: silogismo deductivo o relación de variables) que valide por qué ¬C es una estructura más estable que C.
+    4. BIBLIOGRAFÍA: Cita autores reales que traten sobre la negación o la inversión de estas categorías.
+    5. DESAFÍO: Pide al estudiante que formalice esta negación en una ecuación o modelo teórico.
+
+    Sé riguroso, denso y profundamente académico.
+  `;
 
   const result = await model.generateContent(prompt);
   return JSON.parse(result.response.text());
