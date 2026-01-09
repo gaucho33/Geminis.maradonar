@@ -3,15 +3,15 @@ import { GoogleGenerativeAI, SchemaType } from "@google/generative-ai";
 const apiKey = import.meta.env.VITE_GEMINI_API_KEY || "";
 const genAI = new GoogleGenerativeAI(apiKey);
 
-// Modelos según tu cronograma de 2026
-const ANALYSIS_MODEL = "gemini-2.5-flash"; // Estabilidad para análisis de cualidades
-const TOKEN_MODEL = "gemini-3-pro-preview"; // Potencia para la reformulación teórica
+// Modelos actualizados a 2026
+const ANALYSIS_MODEL = "gemini-2.5-flash"; 
+const TOKEN_MODEL = "gemini-3-pro-preview"; 
 
 export const generateQuickSummary = async (text: string): Promise<string> => {
   if (!apiKey) throw new Error("API Key no configurada.");
   try {
     const model = genAI.getGenerativeModel({ model: ANALYSIS_MODEL });
-    const prompt = `Resume este corpus. Al final del resumen, añade una sección "CENTROIDES POTENCIALES" que sean los puntos de afinidad de las cualidades descritas por el autor. Texto: ${text}`;
+    const prompt = `Resume este corpus de forma rigurosa. Al final, añade una sección "CENTROIDES POTENCIALES" identificando los puntos de afinidad de las cualidades (a, b, c) descritas por el autor. Texto: ${text}`;
     const result = await model.generateContent(prompt);
     return result.response.text();
   } catch (error) {
@@ -38,14 +38,15 @@ export const analyzeTextForMaradona = async (text: string) => {
                 token: { type: SchemaType.STRING },
                 qualities: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } },
                 position: {
-                    type: SchemaType.OBJECT,
-                    properties: {
-                        x: { type: SchemaType.NUMBER },
-                        y: { type: SchemaType.NUMBER }
-                    }
+                  type: SchemaType.OBJECT,
+                  properties: {
+                    x: { type: SchemaType.NUMBER },
+                    y: { type: SchemaType.NUMBER }
+                  },
+                  required: ["x", "y"] // BUG CORREGIDO: Requerido para evitar valores nulos en la gráfica
                 }
               },
-              required: ["token", "qualities"]
+              required: ["token", "qualities", "position"]
             }
           },
           centroids: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } },
@@ -56,18 +57,18 @@ export const analyzeTextForMaradona = async (text: string) => {
     },
   });
 
-  const prompt = `Analiza el siguiente texto académico aplicando la lógica de "Gemini Maradon.ar":
-    1. Identifica los conceptos (tokens) centrales.
-    2. Para cada concepto, identifica sus "cualidades" (conceptos que lo definen por asociación en el texto).
-    3. Busca los "Centroides" C que sinteticen las CUALIDADES encontradas (punto de afinidad de los embeddings de las cualidades, no de los tokens).
-    4. Explica el trabajo original basándote estrictamente en estos centroides de cualidades.
-    5. Asigna posiciones (x, y) a los conceptos basadas en su cercanía al centroide C.
+  const prompt = `Analiza el siguiente texto bajo la lógica de afinidad de cualidades:
+    1. Identifica tokens centrales y sus cualidades asociadas (conceptos vecinos).
+    2. Calcula Centroides C basados exclusivamente en la afinidad de las CUALIDADES, no en el nombre del token.
+    3. Define la topología del texto basándote en estos puntos de gravedad.
+    4. Asigna coordenadas x, y (rango -10 a 10) según la tensión semántica.
 
     TEXTO:
     ${text}`;
 
   const result = await model.generateContent(prompt);
-  return JSON.parse(result.response.text());
+  const responseText = result.response.text();
+  return JSON.parse(responseText.replace(/```json|```/g, "").trim());
 };
 
 export const generateMaradonToken = async (analysis: any) => {
@@ -92,23 +93,23 @@ export const generateMaradonToken = async (analysis: any) => {
   });
 
   const prompt = `
-    INSTRUCCIÓN DE CONTROL: Prohibido usar jerga futbolística o lenguaje coloquial. 
-    Actúa como un epistemólogo que opera sobre una topología de conceptos.
+    ESTRICTO: Actúa como un Epistemólogo y Teórico Crítico. 
+    PROHIBIDO: Usar analogías deportivas, jerga de fútbol o lenguaje coloquial.
+    
+    ENTRADA:
+    - Conceptos/Cualidades: ${JSON.stringify(analysis.concepts)}
+    - Centroides C: ${JSON.stringify(analysis.centroids)}
 
-    BASES:
-    - Cualidades extraídas: ${JSON.stringify(analysis.concepts)}
-    - Centroides de afinidad (C): ${JSON.stringify(analysis.centroids)}
-
-    OPERACIÓN LÓGICA:
-    1. Define el opuesto funcional de los centroides (Negación ¬C).
-    2. REFORMULACIÓN: Redacta una tesis académica que reconstruya el texto original bajo la óptica de ¬C, pero manteniendo las cualidades (a, b, c) de los conceptos originales.
-    3. DEMOSTRACIÓN: Desarrolla una prueba lógica o matemática (ej: silogismo deductivo o relación de variables) que valide por qué ¬C es una estructura más estable que C.
-    4. BIBLIOGRAFÍA: Cita autores reales que traten sobre la negación o la inversión de estas categorías.
-    5. DESAFÍO: Pide al estudiante que formalice esta negación en una ecuación o modelo teórico.
-
-    Sé riguroso, denso y profundamente académico.
+    TAREA TOPOLÓGICA:
+    1. Ejecuta la Negación Operativa (¬C) de los centroides de afinidad encontrados.
+    2. REFORMULACIÓN: Reconstruye la teoría del texto original basándote en ¬C, manteniendo la vecindad de las cualidades originales.
+    3. DEMOSTRACIÓN: Provee un argumento lógico-formal de por qué esta inversión teórica es válida.
+    4. BIBLIOGRAFÍA: Sugiere 3 autores académicos reales pertinentes a esta inversión conceptual.
+    
+    Responde con máximo rigor académico.
   `;
 
   const result = await model.generateContent(prompt);
-  return JSON.parse(result.response.text());
+  const responseText = result.response.text();
+  return JSON.parse(responseText.replace(/```json|```/g, "").trim());
 };
