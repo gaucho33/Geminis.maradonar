@@ -93,20 +93,20 @@ export const generateMaradonToken = async (analysis: any) => {
   });
 
   const prompt = `
-    ESTRICTO: Actúa como un Epistemólogo y Teórico Crítico. 
-    PROHIBIDO: Usar analogías deportivas, jerga de fútbol o lenguaje coloquial.
-    
-    ENTRADA:
-    - Conceptos/Cualidades: ${JSON.stringify(analysis.concepts)}
-    - Centroides C: ${JSON.stringify(analysis.centroids)}
+    ROL: Epistemólogo y Analista de Sistemas Complejos.
+    OBJETIVO: Realizar una inversión ontológica de la base común del texto.
 
-    TAREA TOPOLÓGICA:
-    1. Ejecuta la Negación Operativa (¬C) de los centroides de afinidad encontrados.
-    2. REFORMULACIÓN: Reconstruye la teoría del texto original basándote en ¬C, manteniendo la vecindad de las cualidades originales.
-    3. DEMOSTRACIÓN: Provee un argumento lógico-formal de por qué esta inversión teórica es válida.
-    4. BIBLIOGRAFÍA: Sugiere 3 autores académicos reales pertinentes a esta inversión conceptual.
-    
-    Responde con máximo rigor académico.
+    DATOS DE ENTRADA:
+    - Nube de Cualidades: ${JSON.stringify(analysis.concepts)}
+    - Centroides de Afinidad (C): ${JSON.stringify(analysis.centroids)}
+
+    INSTRUCCIONES DE PROCESAMIENTO (¬C):
+    1. Toma el Centroide C y aplica una negación lógica funcional. Si C es "Centralización", ¬C es "Dispersión Distribuida".
+    2. REFORMULACIÓN: Escribe un párrafo de mínimo 100 palabras con tono de publicación científica (tipo Elsevier o JSTOR). Debe usar terminología técnica (ej: "hegemonía semántica", "isomorfismo", "paradigma ontológico"). 
+    3. DEMOSTRACIÓN: Debe incluir una estructura de "Si P entonces Q" o una breve descripción de una fórmula que sustente la nueva tesis ¬C.
+    4. BIBLIOGRAFÍA: Cita autores de peso (ej: Foucault, Deleuze, Kuhn, etc.) cuya obra respalde la inversión conceptual realizada.
+
+    RESTRICCIÓN ABSOLUTA: Prohibido usar metáforas de "juego", "máscaras", "verdades" o cualquier lenguaje que parezca un aforismo. Debe parecer un fragmento de una teoría científica nueva.
   `;
 
   const result = await model.generateContent(prompt);
