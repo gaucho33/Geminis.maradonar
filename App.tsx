@@ -1,56 +1,24 @@
 import React, { useState, useEffect } from 'react';
-import { Step, AnalysisResult, MaradonTokenResult } from './types';
-import { analyzeTextForMaradona, generateMaradonToken, generateQuickSummary } from './gemini';
+import { Step, AnalysisResult, UnifiedResult } from './types'; // Asegúrate de añadir UnifiedResult a tus types
+import { performUnifiedInterpellation } from './gemini';
 import mammoth from 'mammoth';
 
-const Card: React.FC<{ title: string; children: React.ReactNode; className?: string }> = ({ title, children, className = "" }) => (
-  <div className={`bg-white rounded-xl shadow-lg border border-slate-200 p-6 ${className}`}>
-    <h3 className="text-xl font-bold text-slate-800 mb-4 border-b pb-2">{title}</h3>
-    {children}
-  </div>
-);
-
-const TokenPositionGraph: React.FC<{ analysis: AnalysisResult }> = ({ analysis }) => {
-  return (
-    <div className="relative h-80 w-full bg-slate-900 rounded-xl overflow-hidden border-2 border-blue-500/30">
-      <div className="absolute inset-0 opacity-20 bg-[radial-gradient(#3b82f6_1px,transparent_1px)] [background-size:20px_20px]"></div>
-      <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 100">
-        {analysis.concepts.map((concept, i) => {
-          const x = concept.position?.x !== undefined ? (concept.position.x + 10) * 5 : (i * 25) % 90 + 5;
-          const y = concept.position?.y !== undefined ? (concept.position.y + 10) * 5 : (i * 35) % 90 + 5;
-          const size = concept.tensionValue ? 2 + (concept.tensionValue * 0.4) : 4;
-          return (
-            <g key={i} className="animate-pulse">
-              <circle cx={x} cy={y} r={size} fill="#3b82f6" fillOpacity="0.4" stroke="#60a5fa" strokeWidth="0.5" />
-              <text x={x} y={y - size - 1} textAnchor="middle" fontSize="3" fill="#93c5fd" fontWeight="bold">{concept.token}</text>
-            </g>
-          );
-        })}
-      </svg>
-    </div>
-  );
-};
+// ... Componentes Card y TokenPositionGraph se mantienen igual ...
 
 const App: React.FC = () => {
-  const [hasKey, setHasKey] = useState<boolean | null>(null);
   const [step, setStep] = useState<Step>(Step.UPLOAD);
   const [loadedFiles, setLoadedFiles] = useState<{name: string, content: string}[]>([]);
   const [preSummary, setPreSummary] = useState('');
-  const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
-  const [tokenResult, setTokenResult] = useState<MaradonTokenResult | null>(null);
+  const [unifiedData, setUnifiedData] = useState<UnifiedResult | null>(null); // Estado único
   const [loading, setLoading] = useState(false);
-  const [isSummarizing, setIsSummarizing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    setHasKey(!!import.meta.env.VITE_GEMINI_API_KEY);
-  }, []);
-
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-  const files = e.target.files;
-  if (!files) return;
-  
-  Array.from(files).forEach(async (file) => {
+  // Manejo de archivos simplificado
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+    
+    const file = files[0]; // Simplificamos a un archivo para la prueba de cuota
     try {
       let text = "";
       if (file.name.endsWith('.docx')) {
@@ -59,38 +27,30 @@ const App: React.FC = () => {
       } else {
         text = await file.text();
       }
-
-      if (!text.trim()) {
-        setError("El archivo parece estar vacío.");
-        return;
-      }
-      const newFiles = [...loadedFiles, { name: file.name, content: text }];
-      setLoadedFiles(newFiles);
-      
-      setIsSummarizing(true);
-      // Aquí es donde llama a la IA:
-      const summary = await generateQuickSummary(text); 
-      setPreSummary(summary);
-      setIsSummarizing(false);
-      setError(null); // Limpiamos errores previos si hubo éxito
-    } catch (err) { 
-      console.error(err);
-      setError("Error al procesar el archivo. Revisa la consola (F12)."); 
+      setLoadedFiles([{ name: file.name, content: text }]);
+    } catch (err) {
+      setError("Error al leer el archivo.");
     }
-  });
-};
-
-  const removeFile = (index: number) => {
-    setLoadedFiles(prev => prev.filter((_, i) => i !== index));
   };
 
+  // LA TORSIÓN UNIFICADA (Ahorra cuota y elimina frases hechas)
   const runAnalysis = async () => {
-    setLoading(true); setStep(Step.ANALYZING);
+    if (loadedFiles.length === 0) return;
+    setLoading(true);
+    setError(null);
     try {
-      const result = await analyzeTextForMaradona(loadedFiles.map(f => f.content).join('\n') + preSummary);
-      setAnalysis(result); setStep(Step.RESULT_CENTROID);
-    } catch (err) { setError("Fallo en la interpelación."); setStep(Step.UPLOAD); }
-    finally { setLoading(false); }
+      // Llamamos a la función maestra de gemini.ts
+      const result = await performUnifiedInterpellation(loadedFiles[0].content);
+      
+      setUnifiedData(result); // Guardamos TODO el paquete (Resumen, Gráfica y Token)
+      setPreSummary(result.summary);
+      setStep(Step.RESULT_CENTROID);
+    } catch (err) {
+      setError("Límite de cuota alcanzado o error de red. Intenta mañana.");
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -106,52 +66,66 @@ const App: React.FC = () => {
           <div className="grid md:grid-cols-2 gap-8">
             <Card title="1. Corpus Heterogéneo">
               <div className="border-4 border-dashed p-10 text-center relative hover:border-blue-500 transition-all">
-                <input type="file" multiple onChange={handleFileUpload} className="absolute inset-0 opacity-0 cursor-pointer" />
-                <p className="font-bold text-slate-400">Subir archivos al Nensayo</p>
-              </div>
-              <div className="mt-4 space-y-2">
-                {loadedFiles.map((f, i) => (
-                  <div key={i} className="flex justify-between bg-slate-100 p-2 rounded border">
-                    <span className="text-xs truncate">📄 {f.name}</span>
-                    <button onClick={() => removeFile(i)} className="text-red-500 font-bold px-2">×</button>
-                  </div>
-                ))}
+                <input type="file" onChange={handleFileUpload} className="absolute inset-0 opacity-0 cursor-pointer" />
+                <p className="font-bold text-slate-400">
+                  {loadedFiles.length > 0 ? `Cargado: ${loadedFiles[0].name}` : "Subir archivo al Nensayo"}
+                </p>
               </div>
             </Card>
 
-            <Card title="2. Prensayo Automático">
-              <textarea 
-                className="w-full h-40 p-4 border rounded-xl text-sm bg-slate-50"
-                value={preSummary} 
-                onChange={(e) => setPreSummary(e.target.value)} 
-              />
-              <button disabled={loading || isSummarizing || loadedFiles.length === 0} onClick={runAnalysis} className="w-full mt-4 bg-blue-600 text-white py-4 rounded-xl font-black shadow-lg">EJECUTAR TORSIÓN</button>
+            <Card title="2. Prensayo y Torsión">
+              <p className="text-xs text-slate-500 mb-4">La interpelación generará la gráfica y el token teórico en un solo paso.</p>
+              <button 
+                disabled={loading || loadedFiles.length === 0} 
+                onClick={runAnalysis} 
+                className="w-full bg-blue-600 text-white py-4 rounded-xl font-black shadow-lg hover:bg-blue-700 disabled:bg-slate-300"
+              >
+                {loading ? "PROCESANDO..." : "EJECUTAR INTERPELACIÓN"}
+              </button>
             </Card>
           </div>
         )}
 
-        {loading && <div className="text-center py-20 font-black italic animate-pulse">NEGANDO CENTROIDES...</div>}
-
-        {step === Step.RESULT_CENTROID && analysis && (
+        {/* RESULTADO DE LA GRÁFICA */}
+        {step === Step.RESULT_CENTROID && unifiedData && (
           <div className="space-y-6">
-            <Card title="Análisis No-Lineal">
-              <p className="font-serif italic text-lg">{analysis.centroidExplanation}</p>
+            <Card title="Prensayo Automático">
+              <p className="text-slate-700 leading-relaxed">{unifiedData.summary}</p>
             </Card>
-            <TokenPositionGraph analysis={analysis} />
-            <button onClick={async () => {
-              setLoading(true); setStep(Step.GENERATING_TOKEN);
-              const res = await generateMaradonToken(loadedFiles.map(f => f.content).join('\n'), analysis);
-              setTokenResult(res); setStep(Step.FINAL_REFORMULATION);
-              setLoading(false);
-            }} className="w-full bg-slate-900 text-white py-6 rounded-2xl font-black">CONSOLIDAR TOKEN</button>
+            
+            <TokenPositionGraph analysis={unifiedData} />
+
+            <button 
+              onClick={() => setStep(Step.FINAL_REFORMULATION)} 
+              className="w-full bg-slate-900 text-white py-6 rounded-2xl font-black hover:bg-black"
+            >
+              VER RECONSTRUCCIÓN TEÓRICA (TOKEN)
+            </button>
           </div>
         )}
 
-        {step === Step.FINAL_REFORMULATION && tokenResult && (
-          <Card title="Token Maradon.ar" className="text-center p-12 border-4 border-blue-600">
-            <h2 className="text-4xl font-serif italic">"{tokenResult.token}"</h2>
-            <button onClick={() => window.location.reload()} className="mt-8 text-xs font-bold text-slate-400 uppercase tracking-widest">Reiniciar ciclo</button>
-          </Card>
+        {/* RESULTADO DEL TOKEN (Sin llamadas extra a la API) */}
+        {step === Step.FINAL_REFORMULATION && unifiedData && (
+          <div className="space-y-6">
+            <Card title="Token Maradon.ar: Inversión ¬C" className="border-4 border-blue-600">
+              <div className="space-y-4">
+                <h2 className="text-2xl font-bold text-blue-700 italic">Reformulación Ontológica:</h2>
+                <p className="text-lg font-serif leading-relaxed text-slate-800">
+                  {unifiedData.tokenData.reformulation}
+                </p>
+                <div className="bg-slate-100 p-4 rounded-lg">
+                  <h4 className="font-bold text-xs uppercase text-slate-500 mb-2">Demostración Lógica:</h4>
+                  <code className="text-blue-600">{unifiedData.tokenData.demonstration}</code>
+                </div>
+              </div>
+              <button 
+                onClick={() => window.location.reload()} 
+                className="mt-8 text-xs font-bold text-slate-400 uppercase tracking-widest hover:text-blue-500"
+              >
+                Reiniciar ciclo de asombro
+              </button>
+            </Card>
+          </div>
         )}
       </main>
     </div>
