@@ -12,24 +12,67 @@ const Card: React.FC<{ title: string; children: React.ReactNode; className?: str
 );
 
 const TokenPositionGraph: React.FC<{ analysis: any }> = ({ analysis }) => {
+  // Función para evitar la superposición mediante un pequeño desplazamiento aleatorio (Jitter)
+  const getSafePos = (val: number, index: number) => {
+    // Escalamos el rango original de -10/10 a 0/100
+    const scaled = (val + 10) * 5;
+    // Añadimos un pequeño desplazamiento basado en el índice para que tokens en la misma pos. se separen
+    return scaled + (index % 3) * 2; 
+  };
+
   return (
-    <div className="relative h-80 w-full bg-slate-900 rounded-xl overflow-hidden border-2 border-blue-500/30 shadow-inner">
-      <div className="absolute inset-0 opacity-20 bg-[radial-gradient(#3b82f6_1px,transparent_1px)] [background-size:20px_20px]"></div>
-      <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 100">
+    <div className="relative h-96 w-full bg-slate-950 rounded-xl overflow-hidden border-2 border-blue-500/30 shadow-2xl">
+      {/* Grilla de fondo para dar profundidad */}
+      <div className="absolute inset-0 opacity-10 bg-[linear-gradient(to_right,#808080_1px,transparent_1px),linear-gradient(to_bottom,#808080_1px,transparent_1px)] bg-[size:40px_40px]"></div>
+      
+      <svg className="absolute inset-0 w-full h-full" viewBox="0 0 110 110">
+        {/* Líneas de ejes centrales */}
+        <line x1="55" y1="5" x2="55" y2="105" stroke="#1e293b" strokeWidth="0.5" />
+        <line x1="5" y1="55" x2="105" y2="55" stroke="#1e293b" strokeWidth="0.5" />
+
         {analysis.concepts.map((concept: any, i: number) => {
-          const x = concept.position?.x !== undefined ? (concept.position.x + 10) * 5 : (i * 25) % 90 + 5;
-          const y = concept.position?.y !== undefined ? (concept.position.y + 10) * 5 : (i * 35) % 90 + 5;
-          const size = 3;
+          const x = getSafePos(concept.position?.x || 0, i);
+          const y = getSafePos(concept.position?.y || 0, i + 1);
+          const size = 3.5;
+
           return (
-            <g key={i} className="animate-pulse">
-              <circle cx={x} cy={y} r={size} fill="#3b82f6" fillOpacity="0.4" stroke="#60a5fa" strokeWidth="0.5" />
-              <text x={x} y={y - size - 1} textAnchor="middle" fontSize="3" fill="#93c5fd" className="font-bold pointer-events-none select-none">
+            <g key={i} className="hover:opacity-100 transition-opacity cursor-help group">
+              {/* Brillo de vecindad */}
+              <circle cx={x} cy={y} r={size * 2} fill="#3b82f6" fillOpacity="0.1" />
+              
+              {/* Punto central del Token */}
+              <circle 
+                cx={x} 
+                cy={y} 
+                r={size} 
+                fill="#3b82f6" 
+                fillOpacity="0.6" 
+                stroke="#60a5fa" 
+                strokeWidth="0.4"
+                className="animate-pulse"
+              />
+              
+              {/* Etiqueta del Token con fondo para legibilidad */}
+              <rect x={x - 10} y={y - size - 6} width="20" height="5" rx="1" fill="#0f172a" fillOpacity="0.8" className="hidden group-hover:block" />
+              <text 
+                x={x} 
+                y={y - size - 2} 
+                textAnchor="middle" 
+                fontSize="3.5" 
+                fill="#fff" 
+                className="font-bold pointer-events-none select-none drop-shadow-md"
+              >
                 {concept.token}
               </text>
             </g>
           );
         })}
       </svg>
+      
+      {/* Leyenda de la gráfica */}
+      <div className="absolute bottom-2 right-4 text-[8px] text-slate-500 font-mono uppercase tracking-widest">
+        Topología de Torsión: Φ = c ⊗ C
+      </div>
     </div>
   );
 };
