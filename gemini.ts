@@ -63,7 +63,8 @@ export const performUnifiedInterpellation = async (text: string) => {
          - Toma el centroide C de las cualidades y aplica una inversión ontológica.
          - REFORMULACIÓN: Escribe una tesis académica (mínimo 100 palabras) sobre esta negación.
          - DEMOSTRACIÓN: Provee una estructura lógica formal.
-      
+      4. BIBLIOGRAFÍA VINCULADA: Provee 3 o 4 referencias de autores reales que hayan teorizado sobre la Negación ¬C obtenida. No cites manuales, cita obras fundamentales.
+          
       RESTRICCIÓN ABSOLUTA: Prohibido usar metáforas de fútbol, "gambetas", "jugadas de oro" o "cracks". El tono debe ser puramente científico y académico.
       
       TEXTO: ${text}
