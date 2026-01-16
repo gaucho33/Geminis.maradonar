@@ -4,35 +4,15 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Gemini Maradon.ar - Tutor No-Lineal</title>
-    
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        maradon: {
-                            blue: '#0ea5e9',
-                            dark: '#1e40af',
-                        }
-                    }
-                }
-            }
-        }
-    </script>
-    <style type="text/tailwindcss">
-        @layer utilities {
-            .maradona-gradient {
-                background: linear-gradient(135deg, #0ea5e9 0%, #1e40af 100%);
-            }
-        }
-    </style>
-</head>
+    </head>
 <body class="bg-slate-50 text-slate-900 m-0 font-sans">
     <div id="root">
         <div class="min-h-screen flex flex-col items-center justify-center space-y-4">
-            <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-600"></div>
-            <p class="text-slate-400 animate-pulse font-medium">Negando Centroides...</p>
+            <div style="border-top-color:transparent"
+                 class="w-12 h-12 border-4 border-blue-600 border-solid rounded-full animate-spin"></div>
+            <p class="text-slate-400 animate-pulse font-medium tracking-widest uppercase text-xs">
+                Negando Centroides...
+            </p>
         </div>
     </div>
 
