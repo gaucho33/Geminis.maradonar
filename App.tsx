@@ -12,9 +12,11 @@ const Card: React.FC<{ title: string; children: React.ReactNode; className?: str
 );
 
 const TokenPositionGraph: React.FC<{ analysis: any }> = ({ analysis }) => {
-  const concepts = analysis.concepts;
-  const xValues = concepts.map((c: any) => c.position?.x || 0);
-  const yValues = concepts.map((c: any) => c.position?.y || 0);
+  const concepts = analysis?.concepts || [];
+  if (concepts.length === 0) return null;
+
+  const xValues = concepts.map((c: any) => c.position?.x ?? 0);
+  const yValues = concepts.map((c: any) => c.position?.y ?? 0);
   
   const minX = Math.min(...xValues);
   const maxX = Math.max(...xValues);
@@ -23,7 +25,7 @@ const TokenPositionGraph: React.FC<{ analysis: any }> = ({ analysis }) => {
 
   const normalize = (val: number, min: number, max: number) => {
     if (max === min) return 55;
-    const margin = 15;
+    const margin = 20; // Margen mayor para términos largos como "Dialéctica Materialista"
     return margin + ((val - min) / (max - min)) * (110 - 2 * margin);
   };
 
@@ -32,39 +34,36 @@ const TokenPositionGraph: React.FC<{ analysis: any }> = ({ analysis }) => {
       <div className="absolute inset-0 opacity-10 bg-[linear-gradient(to_right,#808080_1px,transparent_1px),linear-gradient(to_bottom,#808080_1px,transparent_1px)] bg-[size:40px_40px]"></div>
       
       <svg className="absolute inset-0 w-full h-full" viewBox="0 0 110 110" preserveAspectRatio="xMidYMid meet">
-        {/* Ejes de Referencia */}
-        <line x1="55" y1="5" x2="55" y2="105" stroke="#1e293b" strokeWidth="0.1" strokeDasharray="1" />
-        <line x1="5" y1="55" x2="105" y2="55" stroke="#1e293b" strokeWidth="0.1" strokeDasharray="1" />
-
-        {/* --- DIBUJO DE ARISTAS DE RESONANCIA --- */}
+        {/* Aristas de Resonancia con Protección NaN */}
         {concepts.map((cA: any, i: number) => 
           concepts.slice(i + 1).map((cB: any, j: number) => {
-            const x1 = normalize(cA.position?.x || 0, minX, maxX);
-            const y1 = normalize(cA.position?.y || 0, minY, maxY);
-            const x2 = normalize(cB.position?.x || 0, minX, maxX);
-            const y2 = normalize(cB.position?.y || 0, minY, maxY);
+            const x1 = normalize(cA.position?.x ?? 0, minX, maxX);
+            const y1 = normalize(cA.position?.y ?? 0, minY, maxY);
+            const x2 = normalize(cB.position?.x ?? 0, minX, maxX);
+            const y2 = normalize(cB.position?.y ?? 0, minY, maxY);
             
-            // Cálculo de Resonancia Relacional (Promedio de influencias)
-            const relResonance = ((cA.resonance + cB.resonance) / 20) * 100; // Normalizado a %
+            // Verificación de existencia de resonancia para evitar NaN
+            const resA = typeof cA.resonance === 'number' ? cA.resonance : 5;
+            const resB = typeof cB.resonance === 'number' ? cB.resonance : 5;
+            
+            const relResonance = ((resA + resB) / 20) * 100;
             const opacity = relResonance / 100;
-            
+
+            // Solo graficamos aristas con más del 30% para evitar el ruido visual
+            if (relResonance < 30) return null;
+
             return (
               <g key={`edge-${i}-${j}`}>
                 <line 
                   x1={x1} y1={y1} x2={x2} y2={y2} 
-                  stroke="#3b82f6" 
-                  strokeWidth={opacity * 0.5} 
-                  strokeOpacity={opacity * 0.4} 
+                  stroke={relResonance > 70 ? "#60a5fa" : "#1e293b"} 
+                  strokeWidth={opacity * 0.3} 
+                  strokeOpacity={opacity * 0.5} 
                 />
-                {/* Valor en % en el punto medio de la arista */}
                 <text 
-                  x={(x1 + x2) / 2} 
-                  y={(y1 + y2) / 2} 
-                  fontSize="1.5" 
-                  fill="#60a5fa" 
-                  fillOpacity={opacity + 0.2}
-                  textAnchor="middle"
-                  className="font-mono font-black"
+                  x={(x1 + x2) / 2} y={(y1 + y2) / 2} 
+                  fontSize="1.2" fill="#60a5fa" fillOpacity={opacity}
+                  textAnchor="middle" className="font-mono font-bold"
                 >
                   {Math.round(relResonance)}%
                 </text>
@@ -73,27 +72,24 @@ const TokenPositionGraph: React.FC<{ analysis: any }> = ({ analysis }) => {
           })
         )}
 
-        {/* --- DIBUJO DE NODOS (CENTROIDES) --- */}
+        {/* Nodos: Centroides del Ser Social */}
         {concepts.map((concept: any, i: number) => {
-          const x = normalize(concept.position?.x || 0, minX, maxX);
-          const y = normalize(concept.position?.y || 0, minY, maxY);
-          const resonance = concept.resonance || 3.5;
+          const x = normalize(concept.position?.x ?? 0, minX, maxX);
+          const y = normalize(concept.position?.y ?? 0, minY, maxY);
+          const res = typeof concept.resonance === 'number' ? concept.resonance : 4;
 
           return (
             <g key={i} className="cursor-help group">
-              <circle cx={x} cy={y} r={resonance * 1.5} fill="#3b82f6" fillOpacity="0.05" className="animate-pulse" />
+              <circle cx={x} cy={y} r={res * 1.2} fill="#3b82f6" fillOpacity="0.05" />
               <circle 
-                cx={x} cy={y} r={resonance * 0.6} 
+                cx={x} cy={y} r={res * 0.5} 
                 fill={concept.isNegated ? "#ef4444" : "#3b82f6"} 
-                fillOpacity="0.8"
-                stroke="white"
-                strokeWidth="0.2"
-                className="transition-all duration-500 hover:r-4"
+                stroke="white" strokeWidth="0.15"
               />
               <text 
-                x={x} y={y - resonance - 1} 
-                textAnchor="middle" fontSize="2.2" fill="#f8fafc" 
-                className="font-mono font-bold uppercase pointer-events-none drop-shadow-md"
+                x={x} y={y - res - 1} 
+                textAnchor="middle" fontSize="2.4" fill="white" 
+                className="font-mono font-black uppercase drop-shadow-[0_1px_1px_rgba(0,0,0,1)]"
               >
                 {concept.token}
               </text>
@@ -102,8 +98,8 @@ const TokenPositionGraph: React.FC<{ analysis: any }> = ({ analysis }) => {
         })}
       </svg>
       
-      <div className="absolute top-2 right-4 text-[6px] text-blue-400/60 font-mono tracking-widest uppercase">
-        Red Neuronal de Asombro: Φ = C ⊗ c
+      <div className="absolute bottom-2 left-4 text-[7px] text-blue-500/50 font-mono italic">
+        CATEGORÍA: {concepts[0]?.token || "N/A"} ⊗ TRABAJO MUERTO
       </div>
     </div>
   );
