@@ -1,0 +1,24 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  background-color: #f1f5f9; /* slate-100 */
+}
+
+/* Animación para las aristas de Esperanza Activa */
+@keyframes pulse-hope {
+  0%, 100% { stroke-opacity: 0.5; stroke-width: 0.3; }
+  50% { stroke-opacity: 1; stroke-width: 0.8; stroke: #60a5fa; }
+}
+
+.animate-hope {
+  animation: pulse-hope 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Tipografía y suavizado */
+body {
+  margin: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
