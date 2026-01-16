@@ -57,7 +57,6 @@ const TokenPositionGraph: React.FC<{ analysis: any }> = ({ analysis }) => {
                   stroke={relResonance > 70 ? "#60a5fa" : "#1e293b"} 
                   strokeWidth={opacity * 0.3} 
                   strokeOpacity={opacity * 0.5} 
-                  className={relResonance > 75 ? "animate-hope" : ""}
                 />
                 <text 
                   x={(x1 + x2) / 2} y={(y1 + y2) / 2} 
