@@ -26,7 +26,7 @@ const TokenPositionGraph: React.FC<{ analysis: any }> = ({ analysis }) => {
 
   const normalize = (val: number, min: number, max: number) => {
     if (max === min) return 55;
-    const margin = 20; // Margen mayor para términos largos como "Dialéctica Materialista"
+    const margin = 20; 
     return margin + ((val - min) / (max - min)) * (110 - 2 * margin);
   };
 
@@ -35,7 +35,6 @@ const TokenPositionGraph: React.FC<{ analysis: any }> = ({ analysis }) => {
       <div className="absolute inset-0 opacity-10 bg-[linear-gradient(to_right,#808080_1px,transparent_1px),linear-gradient(to_bottom,#808080_1px,transparent_1px)] bg-[size:40px_40px]"></div>
       
       <svg className="absolute inset-0 w-full h-full" viewBox="0 0 110 110" preserveAspectRatio="xMidYMid meet">
-        {/* Aristas de Resonancia con Protección NaN */}
         {concepts.map((cA: any, i: number) => 
           concepts.slice(i + 1).map((cB: any, j: number) => {
             const x1 = normalize(cA.position?.x ?? 0, minX, maxX);
@@ -43,14 +42,12 @@ const TokenPositionGraph: React.FC<{ analysis: any }> = ({ analysis }) => {
             const x2 = normalize(cB.position?.x ?? 0, minX, maxX);
             const y2 = normalize(cB.position?.y ?? 0, minY, maxY);
             
-            // Verificación de existencia de resonancia para evitar NaN
             const resA = typeof cA.resonance === 'number' ? cA.resonance : 5;
             const resB = typeof cB.resonance === 'number' ? cB.resonance : 5;
             
             const relResonance = ((resA + resB) / 20) * 100;
             const opacity = relResonance / 100;
 
-            // Solo graficamos aristas con más del 30% para evitar el ruido visual
             if (relResonance < 30) return null;
 
             return (
@@ -60,6 +57,7 @@ const TokenPositionGraph: React.FC<{ analysis: any }> = ({ analysis }) => {
                   stroke={relResonance > 70 ? "#60a5fa" : "#1e293b"} 
                   strokeWidth={opacity * 0.3} 
                   strokeOpacity={opacity * 0.5} 
+                  className={relResonance > 75 ? "animate-hope" : ""}
                 />
                 <text 
                   x={(x1 + x2) / 2} y={(y1 + y2) / 2} 
@@ -73,7 +71,6 @@ const TokenPositionGraph: React.FC<{ analysis: any }> = ({ analysis }) => {
           })
         )}
 
-        {/* Nodos: Centroides del Ser Social */}
         {concepts.map((concept: any, i: number) => {
           const x = normalize(concept.position?.x ?? 0, minX, maxX);
           const y = normalize(concept.position?.y ?? 0, minY, maxY);
@@ -106,7 +103,7 @@ const TokenPositionGraph: React.FC<{ analysis: any }> = ({ analysis }) => {
   );
 };
 
-// --- COMPONENTE PRINCIPAL: GEMINI MARADON.AR ---
+// --- COMPONENTE PRINCIPAL ---
 
 const App: React.FC = () => {
   const [step, setStep] = useState<'UPLOAD' | 'RESULT'>('UPLOAD');
@@ -114,6 +111,7 @@ const App: React.FC = () => {
   const [unifiedData, setUnifiedData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [accessKey, setAccessKey] = useState("");
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -136,24 +134,23 @@ const App: React.FC = () => {
     }
   };
 
-  const [accessKey, setAccessKey] = useState("");
-// ... en el botón:
-if (accessKey !== "QUUIJANO2026") { 
-  setError("Clave de Acceso Dialéctico incorrecta."); 
-  return; 
-}
-
   const runDialecticalAnalysis = async () => {
     if (loadedFiles.length === 0) return;
+
+    // VALIDACIÓN DE LA LLAVE DE ACCESO
+    if (accessKey !== "QUUIJANO2026") {
+      setError("Clave de Acceso Dialéctico incorrecta. El asombro es una invitación.");
+      return;
+    }
+
     setLoading(true);
     setError(null);
     try {
-      // Interpelación unificada basada en ¬P
       const result = await performUnifiedInterpellation(loadedFiles[0].content);
       setUnifiedData(result);
       setStep('RESULT');
     } catch (err: any) {
-      setError("La realidad ha colapsado. Cuota de asombro agotada (20/20).");
+      setError("La realidad ha colapsado. Cuota de asombro agotada.");
     } finally {
       setLoading(false);
     }
@@ -162,7 +159,7 @@ if (accessKey !== "QUUIJANO2026") {
   return (
     <div className="min-h-screen bg-slate-100 font-sans flex flex-col selection:bg-blue-200">
       <header className="bg-slate-900 text-white p-8 shadow-2xl border-b-8 border-blue-600">
-        <h1 className="text-4xl font-black italic tracking-tighter text-center">GEMINI MARADON.AR</h1>
+        <h1 className="text-4xl font-black italic tracking-tighter text-center uppercase">Gemini Maradon.ar</h1>
         <div className="flex justify-center items-center gap-4 mt-2">
           <span className="h-px w-12 bg-blue-500"></span>
           <p className="text-xs text-blue-400 font-black uppercase tracking-[0.3em]">Arquitectura del Asombro</p>
@@ -178,7 +175,7 @@ if (accessKey !== "QUUIJANO2026") {
         )}
 
         {step === 'UPLOAD' && (
-          <div className="max-w-2xl mx-auto">
+          <div className="max-w-2xl mx-auto space-y-6">
             <Card title="Cargar Materia Dialéctica">
               <div className="group border-4 border-dashed border-slate-300 p-12 text-center relative hover:border-blue-500 hover:bg-white transition-all rounded-2xl cursor-pointer">
                 <input type="file" onChange={handleFileUpload} className="absolute inset-0 opacity-0 cursor-pointer" />
@@ -188,6 +185,18 @@ if (accessKey !== "QUUIJANO2026") {
                     {loadedFiles.length > 0 ? `Entidad Lista: ${loadedFiles[0].name}` : "Sube el texto para iniciar la negación"}
                   </p>
                 </div>
+              </div>
+
+              {/* INPUT DE LA CLAVE */}
+              <div className="mt-6">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Llave de Paso Ontológica</label>
+                <input 
+                  type="password"
+                  value={accessKey}
+                  onChange={(e) => setAccessKey(e.target.value)}
+                  placeholder="Introduce la clave..."
+                  className="w-full p-4 rounded-xl border-2 border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all outline-none text-center font-mono font-bold"
+                />
               </div>
               
               <button 
@@ -209,7 +218,6 @@ if (accessKey !== "QUUIJANO2026") {
                   {unifiedData.summary}
                 </p>
               </Card>
-              
               <TokenPositionGraph analysis={unifiedData} />
             </div>
 
@@ -218,7 +226,7 @@ if (accessKey !== "QUUIJANO2026") {
                 <div className="space-y-6">
                   <div>
                     <h4 className="text-[10px] font-black text-blue-300 uppercase tracking-widest mb-3">Reformulación Ontológica</h4>
-                    <p className="text-lg font-serif leading-tight">
+                    <p className="text-lg font-serif leading-tight italic">
                       "{unifiedData.tokenData.reformulation}"
                     </p>
                   </div>
@@ -255,7 +263,7 @@ if (accessKey !== "QUUIJANO2026") {
             <div>
               <p className="text-slate-500 text-sm leading-relaxed">
                 <span className="font-black text-slate-900">GEMINISMARADONAR</span> es un proyecto simbiótico nacido en Campo Quijano. 
-                Utiliza la **Derivada de la Esperanza** para encontrar la Unicidad en textos complejos de investigación teórica.
+                Utiliza la **Derivada de la Esperanza** para encontrar la Unicidad en el Concreto Representado.
               </p>
             </div>
             
@@ -264,7 +272,7 @@ if (accessKey !== "QUUIJANO2026") {
               <div className="bg-white border-2 border-green-600 py-3 rounded-xl mb-2">
                 <span className="text-green-700 font-mono font-black text-xl select-all">vkingo.gym.mp</span>
               </div>
-              <p className="text-[8px] text-green-600 font-bold uppercase">Convídale un mate para más de 20 consultas</p>
+              <p className="text-[8px] text-green-600 font-bold uppercase tracking-widest">Convídale un mate para más consultas</p>
             </div>
           </div>
         </div>
