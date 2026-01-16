@@ -95,10 +95,6 @@ const TokenPositionGraph: React.FC<{ analysis: any }> = ({ analysis }) => {
           );
         })}
       </svg>
-      
-      <div className="absolute bottom-2 left-4 text-[7px] text-blue-500/50 font-mono italic">
-        CATEGORÍA: {concepts[0]?.token || "N/A"} ⊗ TRABAJO MUERTO
-      </div>
     </div>
   );
 };
@@ -136,8 +132,7 @@ const App: React.FC = () => {
 
   const runDialecticalAnalysis = async () => {
     if (loadedFiles.length === 0) return;
-
-    // VALIDACIÓN DE LA LLAVE DE ACCESO
+    
     if (accessKey !== "QUUIJANO2026") {
       setError("Clave de Acceso Dialéctico incorrecta. El asombro es una invitación.");
       return;
@@ -157,7 +152,7 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-100 font-sans flex flex-col selection:bg-blue-200">
+    <div className="min-h-screen bg-slate-100 font-sans flex flex-col">
       <header className="bg-slate-900 text-white p-8 shadow-2xl border-b-8 border-blue-600">
         <h1 className="text-4xl font-black italic tracking-tighter text-center uppercase">Gemini Maradon.ar</h1>
         <div className="flex justify-center items-center gap-4 mt-2">
@@ -187,7 +182,6 @@ const App: React.FC = () => {
                 </div>
               </div>
 
-              {/* INPUT DE LA CLAVE */}
               <div className="mt-6">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Llave de Paso Ontológica</label>
                 <input 
@@ -195,14 +189,14 @@ const App: React.FC = () => {
                   value={accessKey}
                   onChange={(e) => setAccessKey(e.target.value)}
                   placeholder="Introduce la clave..."
-                  className="w-full p-4 rounded-xl border-2 border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all outline-none text-center font-mono font-bold"
+                  className="w-full p-4 rounded-xl border-2 border-slate-200 focus:border-blue-500 outline-none text-center font-mono font-bold"
                 />
               </div>
               
               <button 
                 disabled={loading || loadedFiles.length === 0} 
                 onClick={runDialecticalAnalysis} 
-                className="w-full mt-8 bg-blue-600 text-white py-5 rounded-2xl font-black text-xl shadow-[0_10px_0_0_rgba(29,78,216,1)] hover:shadow-[0_5px_0_0_rgba(29,78,216,1)] hover:translate-y-1 transition-all disabled:bg-slate-400 disabled:shadow-none"
+                className="w-full mt-8 bg-blue-600 text-white py-5 rounded-2xl font-black text-xl shadow-[0_10px_0_0_rgba(29,78,216,1)] hover:shadow-[0_5px_0_0_rgba(29,78,216,1)] hover:translate-y-1 transition-all disabled:bg-slate-400"
               >
                 {loading ? "PROYECTANDO COSEMA..." : "EJECUTAR INTERPELACIÓN ¬P"}
               </button>
@@ -211,7 +205,7 @@ const App: React.FC = () => {
         )}
 
         {step === 'RESULT' && unifiedData && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-in fade-in zoom-in duration-500">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="md:col-span-2 space-y-6">
               <Card title="Prensayo: Resonancia de Cualidades">
                 <p className="text-slate-800 leading-relaxed font-serif text-xl italic border-l-4 border-blue-500 pl-4">
@@ -231,11 +225,8 @@ const App: React.FC = () => {
                     </p>
                   </div>
                   
-                  <div className="bg-slate-950 p-4 rounded-xl border border-blue-500/30">
-                    <h4 className="text-[9px] font-black text-slate-500 uppercase mb-2">Demostración Lógica ($\neg P$)</h4>
-                    <code className="text-xs text-blue-400 font-mono break-all leading-relaxed">
-                      {unifiedData.tokenData.demonstration}
-                    </code>
+                  <div className="bg-slate-950 p-4 rounded-xl border border-blue-500/30 text-xs font-mono text-blue-400 break-all">
+                    {unifiedData.tokenData.demonstration}
                   </div>
 
                   <button 
@@ -251,29 +242,14 @@ const App: React.FC = () => {
         )}
       </main>
 
-      <footer className="bg-white border-t-2 border-slate-200 p-12 mt-20">
-        <div className="max-w-4xl mx-auto text-center">
-          <div className="inline-block bg-blue-50 px-6 py-2 rounded-full mb-8">
-            <p className="text-blue-700 font-serif italic">
-              "La IA no procesa datos, internaliza marcos sociales de asombro."
-            </p>
-          </div>
-          
-          <div className="grid md:grid-cols-2 gap-12 items-center text-left">
-            <div>
-              <p className="text-slate-500 text-sm leading-relaxed">
-                <span className="font-black text-slate-900">GEMINISMARADONAR</span> es un proyecto simbiótico nacido en Campo Quijano. 
-                Utiliza la **Derivada de la Esperanza** para encontrar la Unicidad en el Concreto Representado.
-              </p>
-            </div>
-            
-            <div className="bg-slate-50 p-6 rounded-3xl border-2 border-green-500/20 shadow-inner text-center">
-              <p className="text-[10px] font-black text-slate-400 uppercase mb-4 tracking-tighter">Mantenimiento de la Arquitectura</p>
-              <div className="bg-white border-2 border-green-600 py-3 rounded-xl mb-2">
-                <span className="text-green-700 font-mono font-black text-xl select-all">vkingo.gym.mp</span>
-              </div>
-              <p className="text-[8px] text-green-600 font-bold uppercase tracking-widest">Convídale un mate para más consultas</p>
-            </div>
+      <footer className="bg-white border-t-2 border-slate-200 p-12 mt-20 text-center">
+        <div className="max-w-4xl mx-auto">
+          <p className="text-slate-500 text-sm mb-4">
+            <span className="font-black text-slate-900 uppercase">Geminis Maradonar</span> ⊗ Campo Quijano
+          </p>
+          <div className="inline-block bg-slate-50 p-6 rounded-3xl border-2 border-green-500/20">
+            <p className="text-[10px] font-black text-slate-400 uppercase mb-2">Mantenimiento</p>
+            <span className="text-green-700 font-mono font-black text-xl">vkingo.gym.mp</span>
           </div>
         </div>
       </footer>
