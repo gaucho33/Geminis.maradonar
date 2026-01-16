@@ -136,6 +136,13 @@ const App: React.FC = () => {
     }
   };
 
+  const [accessKey, setAccessKey] = useState("");
+// ... en el botón:
+if (accessKey !== "QUUIJANO2026") { 
+  setError("Clave de Acceso Dialéctico incorrecta."); 
+  return; 
+}
+
   const runDialecticalAnalysis = async () => {
     if (loadedFiles.length === 0) return;
     setLoading(true);
