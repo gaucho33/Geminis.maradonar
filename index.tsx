@@ -1,5 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+import './index.css'; 
 import App from './App';
 
 // 1. Localizamos el punto de anclaje en el DOM
