@@ -3,7 +3,8 @@ import { GoogleGenerativeAI, SchemaType } from "@google/generative-ai";
 const apiKey = import.meta.env.VITE_GEMINI_API_KEY || "";
 const genAI = new GoogleGenerativeAI(apiKey);
 
-const MODEL_NAME = "gemini-2.5-flash"; 
+// Usamos el modelo más capaz para asegurar la precisión en la torsión dialéctica
+const MODEL_NAME = "gemini-2.0-flash"; 
 
 export const performUnifiedInterpellation = async (text: string) => {
   if (!apiKey) throw new Error("API Key no configurada.");
@@ -23,14 +24,19 @@ export const performUnifiedInterpellation = async (text: string) => {
                 type: SchemaType.OBJECT,
                 properties: {
                   token: { type: SchemaType.STRING },
+                  resonance: { type: SchemaType.NUMBER }, // Escala 1-10 para la pulsación de esperanza
+                  isNegated: { type: SchemaType.BOOLEAN }, // True para puntos de fricción/enajenación
                   qualities: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } },
                   position: {
                     type: SchemaType.OBJECT,
-                    properties: { x: { type: SchemaType.NUMBER }, y: { type: SchemaType.NUMBER } },
+                    properties: { 
+                      x: { type: SchemaType.NUMBER }, 
+                      y: { type: SchemaType.NUMBER } 
+                    },
                     required: ["x", "y"]
                   }
                 },
-                required: ["token", "qualities", "position"]
+                required: ["token", "resonance", "isNegated", "qualities", "position"]
               }
             },
             centroids: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } },
@@ -51,37 +57,45 @@ export const performUnifiedInterpellation = async (text: string) => {
     });
 
     const prompt = `
-  ROL: Epistemólogo, Traductor de Vecindades y Analista de Sistemas Complejos.
-  
-  TAREA UNIFICADA:
-  1. ANÁLISIS DE TORSIÓN: Identifica las cualidades (a, b, c) del texto y calcula el centroide C.
-  2. NEGACIÓN (EL TOKEN): Realiza la inversión ontológica ¬C para estresar la tesis original.
-  3. SÍNTESIS (LA TERCERA VÍA): Resuelve la contradicción entre C y ¬C. Propón una "Inmanencia Relacional" donde el sentido sea un evento emergente (Producto Tensorial) entre el contenedor social y el contenido inmanente.
-  
-  FORMATO DE RESPUESTA (JSON):
-  - summary: Resumen riguroso del corpus.
-  - concepts: Array de tokens con cualidades y coordenadas (x, y).
-  - tokenData: {
-      negatedCentroids: ["Cualidad 1", "Cualidad 2"],
-      reformulation: "Tesis de la Síntesis (mínimo 150 palabras, tono académico elevado)",
-      demonstration: "Estructura lógica formal usando notación matemática (Φ = C ⊗ c)",
-      suggestedBibliography: ["Autor - Obra (Relacionado a la síntesis)"]
-    }
+      ROL: Epistemólogo, Traductor de Vecindades y Analista de Sistemas Complejos.
+      
+      CONTEXTO FILOSÓFICO:
+      Opera bajo la tesis de la "Inmanencia Relacional". El sentido no preexiste, es un Producto Tensorial (Φ = C ⊗ c) entre el Contenedor Social (C) y el Contenido Inmanente (c).
+      
+      TAREA UNIFICADA:
+      1. ANÁLISIS DE TORSIÓN: Identifica las categorías dialécticas fundamentales del texto.
+      2. MAPEO DE VECINDAD: Asigna coordenadas (x, y) donde la cercanía indique afinidad semántica. 
+      3. RESONANCIA: Define 'resonance' (1-10) según la potencia transformadora del concepto. Un valor > 8 activará la "Esperanza Activa".
+      4. NEGACIÓN (EL TOKEN): Identifica conceptos de 'enajenación' o 'trabajo muerto' y márcalos como 'isNegated: true'. Realiza la inversión ontológica ¬C para estresar la tesis original.
+      5. SÍNTESIS: Resuelve la contradicción entre el texto y su negación. Propón una reformulación que devuelva al sujeto al estado de 'Asombro Infantil' libre de estatus.
 
-  RESTRICCIÓN: Prohibido lenguaje coloquial. El tono debe ser el de un 'Paper' de Filosofía de la Técnica.
-  
-  TEXTO: ${text}
-`;
+      FORMATO DE RESPUESTA (JSON):
+      - summary: Resumen riguroso en tono de 'Paper' académico.
+      - concepts: Tokens con sus metadatos de posición y resonancia.
+      - tokenData: {
+          negatedCentroids: ["Lo que se niega del texto original"],
+          reformulation: "Tesis de la Síntesis (Mínimo 150 palabras, profundidad ontológica)",
+          demonstration: "Estructura lógica formal (ej: Φ = C ⊗ ¬P → Unicidad)",
+          suggestedBibliography: ["Autor - Obra"]
+        }
+
+      RESTRICCIÓN: Queda estrictamente prohibido el lenguaje coloquial.
+      
+      TEXTO A INTERPELAR: ${text}
+    `;
 
     const result = await model.generateContent(prompt);
     const responseText = result.response.text();
     
+    // Limpieza de seguridad para asegurar un JSON válido
     const start = responseText.indexOf('{');
     const end = responseText.lastIndexOf('}') + 1;
-    return JSON.parse(responseText.substring(start, end));
+    const jsonString = responseText.substring(start, end);
+    
+    return JSON.parse(jsonString);
 
   } catch (error) {
-    console.error("Error en performUnifiedInterpellation:", error);
+    console.error("Error en la Interpelación Unificada:", error);
     throw error;
   }
 };
