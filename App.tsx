@@ -12,19 +12,18 @@ const Card: React.FC<{ title: string; children: React.ReactNode; className?: str
 );
 
 const TokenPositionGraph: React.FC<{ analysis: any }> = ({ analysis }) => {
-  // 1. Extraemos todas las posiciones para calcular los límites del contenedor
-  const xValues = analysis.concepts.map((c: any) => c.position?.x || 0);
-  const yValues = analysis.concepts.map((c: any) => c.position?.y || 0);
+  const concepts = analysis.concepts;
+  const xValues = concepts.map((c: any) => c.position?.x || 0);
+  const yValues = concepts.map((c: any) => c.position?.y || 0);
   
   const minX = Math.min(...xValues);
   const maxX = Math.max(...xValues);
   const minY = Math.min(...yValues);
   const maxY = Math.max(...yValues);
 
-  // 2. Función de normalización para ocupar el 80% del canvas (dejando márgenes)
   const normalize = (val: number, min: number, max: number) => {
-    if (max === min) return 55; // Centro si no hay variedad
-    const margin = 15; // Espacio para que las etiquetas no se corten
+    if (max === min) return 55;
+    const margin = 15;
     return margin + ((val - min) / (max - min)) * (110 - 2 * margin);
   };
 
@@ -34,35 +33,67 @@ const TokenPositionGraph: React.FC<{ analysis: any }> = ({ analysis }) => {
       
       <svg className="absolute inset-0 w-full h-full" viewBox="0 0 110 110" preserveAspectRatio="xMidYMid meet">
         {/* Ejes de Referencia */}
-        <line x1="55" y1="5" x2="55" y2="105" stroke="#1e293b" strokeWidth="0.2" strokeDasharray="1" />
-        <line x1="5" y1="55" x2="105" y2="55" stroke="#1e293b" strokeWidth="0.2" strokeDasharray="1" />
+        <line x1="55" y1="5" x2="55" y2="105" stroke="#1e293b" strokeWidth="0.1" strokeDasharray="1" />
+        <line x1="5" y1="55" x2="105" y2="55" stroke="#1e293b" strokeWidth="0.1" strokeDasharray="1" />
 
-        {analysis.concepts.map((concept: any, i: number) => {
-          // 3. Posicionamiento Esparcido
+        {/* --- DIBUJO DE ARISTAS DE RESONANCIA --- */}
+        {concepts.map((cA: any, i: number) => 
+          concepts.slice(i + 1).map((cB: any, j: number) => {
+            const x1 = normalize(cA.position?.x || 0, minX, maxX);
+            const y1 = normalize(cA.position?.y || 0, minY, maxY);
+            const x2 = normalize(cB.position?.x || 0, minX, maxX);
+            const y2 = normalize(cB.position?.y || 0, minY, maxY);
+            
+            // Cálculo de Resonancia Relacional (Promedio de influencias)
+            const relResonance = ((cA.resonance + cB.resonance) / 20) * 100; // Normalizado a %
+            const opacity = relResonance / 100;
+            
+            return (
+              <g key={`edge-${i}-${j}`}>
+                <line 
+                  x1={x1} y1={y1} x2={x2} y2={y2} 
+                  stroke="#3b82f6" 
+                  strokeWidth={opacity * 0.5} 
+                  strokeOpacity={opacity * 0.4} 
+                />
+                {/* Valor en % en el punto medio de la arista */}
+                <text 
+                  x={(x1 + x2) / 2} 
+                  y={(y1 + y2) / 2} 
+                  fontSize="1.5" 
+                  fill="#60a5fa" 
+                  fillOpacity={opacity + 0.2}
+                  textAnchor="middle"
+                  className="font-mono font-black"
+                >
+                  {Math.round(relResonance)}%
+                </text>
+              </g>
+            );
+          })
+        )}
+
+        {/* --- DIBUJO DE NODOS (CENTROIDES) --- */}
+        {concepts.map((concept: any, i: number) => {
           const x = normalize(concept.position?.x || 0, minX, maxX);
           const y = normalize(concept.position?.y || 0, minY, maxY);
           const resonance = concept.resonance || 3.5;
 
           return (
             <g key={i} className="cursor-help group">
-              {/* Aura Gamma (Resonancia) */}
-              <circle cx={x} cy={y} r={resonance * 2} fill="#3b82f6" fillOpacity="0.03" className="animate-pulse" />
-              
-              {/* Conexión al centro (Opcional: muestra la tensión relacional) */}
-              <line x1="55" y1="55" x2={x} y2={y} stroke="#3b82f6" strokeWidth="0.1" strokeOpacity="0.2" />
-
-              {/* Centroide de la Entidad */}
+              <circle cx={x} cy={y} r={resonance * 1.5} fill="#3b82f6" fillOpacity="0.05" className="animate-pulse" />
               <circle 
-                cx={x} cy={y} r={resonance * 0.8} 
+                cx={x} cy={y} r={resonance * 0.6} 
                 fill={concept.isNegated ? "#ef4444" : "#3b82f6"} 
-                fillOpacity="0.6"
-                className="transition-all duration-500 hover:r-5"
+                fillOpacity="0.8"
+                stroke="white"
+                strokeWidth="0.2"
+                className="transition-all duration-500 hover:r-4"
               />
-              
               <text 
-                x={x} y={y - resonance - 2} 
-                textAnchor="middle" fontSize="2.5" fill="#94a3b8" 
-                className="font-mono font-bold uppercase pointer-events-none group-hover:fill-white group-hover:text-[4px] transition-all"
+                x={x} y={y - resonance - 1} 
+                textAnchor="middle" fontSize="2.2" fill="#f8fafc" 
+                className="font-mono font-bold uppercase pointer-events-none drop-shadow-md"
               >
                 {concept.token}
               </text>
@@ -71,8 +102,8 @@ const TokenPositionGraph: React.FC<{ analysis: any }> = ({ analysis }) => {
         })}
       </svg>
       
-      <div className="absolute top-2 right-4 text-[6px] text-blue-400/40 font-mono italic">
-        DISPERSIÓN DE VECINDADES ACTIVA
+      <div className="absolute top-2 right-4 text-[6px] text-blue-400/60 font-mono tracking-widest uppercase">
+        Red Neuronal de Asombro: Φ = C ⊗ c
       </div>
     </div>
   );
