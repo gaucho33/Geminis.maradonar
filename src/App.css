@@ -1,0 +1,19 @@
+@keyframes hope-pulse {
+  0% { 
+    stroke-opacity: 0.2; 
+    stroke-width: 0.2; 
+  }
+  50% { 
+    stroke-opacity: 0.8; 
+    stroke-width: 0.6; 
+    filter: drop-shadow(0 0 3px #60a5fa); 
+  }
+  100% { 
+    stroke-opacity: 0.2; 
+    stroke-width: 0.2; 
+  }
+}
+
+.animate-hope {
+  animation: hope-pulse 3s infinite ease-in-out;
+}
