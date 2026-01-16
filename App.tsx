@@ -12,51 +12,57 @@ const Card: React.FC<{ title: string; children: React.ReactNode; className?: str
 );
 
 const TokenPositionGraph: React.FC<{ analysis: any }> = ({ analysis }) => {
-  // Aplicamos Jitter para evitar el estatismo en la vecindad
-  const getSafePos = (val: number, index: number) => {
-    const scaled = (val + 10) * 5; 
-    return scaled + (index % 3) * 2; 
+  // 1. Extraemos todas las posiciones para calcular los límites del contenedor
+  const xValues = analysis.concepts.map((c: any) => c.position?.x || 0);
+  const yValues = analysis.concepts.map((c: any) => c.position?.y || 0);
+  
+  const minX = Math.min(...xValues);
+  const maxX = Math.max(...xValues);
+  const minY = Math.min(...yValues);
+  const maxY = Math.max(...yValues);
+
+  // 2. Función de normalización para ocupar el 80% del canvas (dejando márgenes)
+  const normalize = (val: number, min: number, max: number) => {
+    if (max === min) return 55; // Centro si no hay variedad
+    const margin = 15; // Espacio para que las etiquetas no se corten
+    return margin + ((val - min) / (max - min)) * (110 - 2 * margin);
   };
 
   return (
     <div className="relative h-96 w-full bg-slate-950 rounded-xl overflow-hidden border-2 border-blue-500/30 shadow-2xl">
       <div className="absolute inset-0 opacity-10 bg-[linear-gradient(to_right,#808080_1px,transparent_1px),linear-gradient(to_bottom,#808080_1px,transparent_1px)] bg-[size:40px_40px]"></div>
       
-      <svg className="absolute inset-0 w-full h-full" viewBox="0 0 110 110">
-        {/* Ejes de la Base Común */}
-        <line x1="55" y1="5" x2="55" y2="105" stroke="#1e293b" strokeWidth="0.5" strokeDasharray="2" />
-        <line x1="5" y1="55" x2="105" y2="55" stroke="#1e293b" strokeWidth="0.5" strokeDasharray="2" />
+      <svg className="absolute inset-0 w-full h-full" viewBox="0 0 110 110" preserveAspectRatio="xMidYMid meet">
+        {/* Ejes de Referencia */}
+        <line x1="55" y1="5" x2="55" y2="105" stroke="#1e293b" strokeWidth="0.2" strokeDasharray="1" />
+        <line x1="5" y1="55" x2="105" y2="55" stroke="#1e293b" strokeWidth="0.2" strokeDasharray="1" />
 
         {analysis.concepts.map((concept: any, i: number) => {
-          const x = getSafePos(concept.position?.x || 0, i);
-          const y = getSafePos(concept.position?.y || 0, i + 1);
-          // El radio Gamma (Resonancia)
+          // 3. Posicionamiento Esparcido
+          const x = normalize(concept.position?.x || 0, minX, maxX);
+          const y = normalize(concept.position?.y || 0, minY, maxY);
           const resonance = concept.resonance || 3.5;
 
           return (
             <g key={i} className="cursor-help group">
-              {/* Onda de Fase Alfa (Seno) */}
-              <circle cx={x} cy={y} r={resonance * 2.5} fill="#3b82f6" fillOpacity="0.05" className="animate-ping" />
+              {/* Aura Gamma (Resonancia) */}
+              <circle cx={x} cy={y} r={resonance * 2} fill="#3b82f6" fillOpacity="0.03" className="animate-pulse" />
               
+              {/* Conexión al centro (Opcional: muestra la tensión relacional) */}
+              <line x1="55" y1="55" x2={x} y2={y} stroke="#3b82f6" strokeWidth="0.1" strokeOpacity="0.2" />
+
               {/* Centroide de la Entidad */}
               <circle 
-                cx={x} 
-                cy={y} 
-                r={resonance} 
+                cx={x} cy={y} r={resonance * 0.8} 
                 fill={concept.isNegated ? "#ef4444" : "#3b82f6"} 
-                fillOpacity="0.7" 
-                stroke={concept.isNegated ? "#f87171" : "#60a5fa"} 
-                strokeWidth="0.5"
+                fillOpacity="0.6"
+                className="transition-all duration-500 hover:r-5"
               />
               
-              {/* Etiqueta de Subjetividad Realizada */}
               <text 
-                x={x} 
-                y={y - resonance - 3} 
-                textAnchor="middle" 
-                fontSize="3" 
-                fill="#94a3b8" 
-                className="font-mono uppercase pointer-events-none group-hover:fill-white transition-colors"
+                x={x} y={y - resonance - 2} 
+                textAnchor="middle" fontSize="2.5" fill="#94a3b8" 
+                className="font-mono font-bold uppercase pointer-events-none group-hover:fill-white group-hover:text-[4px] transition-all"
               >
                 {concept.token}
               </text>
@@ -65,11 +71,8 @@ const TokenPositionGraph: React.FC<{ analysis: any }> = ({ analysis }) => {
         })}
       </svg>
       
-      <div className="absolute bottom-2 left-4 text-[7px] text-blue-500/50 font-mono">
-        ESTADO: DERIVADA DE LA ESPERANZA ACTIVA
-      </div>
-      <div className="absolute bottom-2 right-4 text-[8px] text-slate-500 font-mono uppercase tracking-widest">
-        Topología de Torsión: Φ = c ⊗ ¬P
+      <div className="absolute top-2 right-4 text-[6px] text-blue-400/40 font-mono italic">
+        DISPERSIÓN DE VECINDADES ACTIVA
       </div>
     </div>
   );
