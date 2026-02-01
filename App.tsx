@@ -44,7 +44,6 @@ const TokenPositionGraph: React.FC<{ analysis: any }> = ({ analysis }) => {
             
             const resA = typeof cA.resonance === 'number' ? cA.resonance : 5;
             const resB = typeof cB.resonance === 'number' ? cB.resonance : 5;
-            
             const relResonance = ((resA + resB) / 20) * 100;
             const opacity = relResonance / 100;
 
@@ -100,7 +99,6 @@ const App: React.FC = () => {
   const [unifiedData, setUnifiedData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [accessKey, setAccessKey] = useState("");
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -116,7 +114,7 @@ const App: React.FC = () => {
       } else {
         text = await file.text();
       }
-      setInputText(text); // Carga el texto del archivo en el área de texto
+      setInputText(text);
       setLoadedFiles([{ name: file.name, content: text }]);
       setError(null);
     } catch (err) {
@@ -129,11 +127,6 @@ const App: React.FC = () => {
       setError("La materia dialéctica está vacía. Ingrese texto o suba un archivo.");
       return;
     }
-    
-    if (accessKey !== "QUUIJANO2026") {
-      setError("Clave de Acceso Dialéctico incorrecta. El asombro es una invitación.");
-      return;
-    }
 
     setLoading(true);
     setError(null);
@@ -142,7 +135,7 @@ const App: React.FC = () => {
       setUnifiedData(result);
       setStep('RESULT');
     } catch (err: any) {
-      setError("La realidad ha colapsado. Cuota de asombro agotada.");
+      setError("La realidad ha colapsado. Verifique su conexión al cosema.");
     } finally {
       setLoading(false);
     }
@@ -190,17 +183,6 @@ const App: React.FC = () => {
                     {loadedFiles.length > 0 ? `Entidad Detectada: ${loadedFiles[0].name}` : "Adjuntar .txt o .docx"}
                   </p>
                 </div>
-              </div>
-
-              <div className="mt-6">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Llave de Paso Ontológica</label>
-                <input 
-                  type="password"
-                  value={accessKey}
-                  onChange={(e) => setAccessKey(e.target.value)}
-                  placeholder="Introduce la clave..."
-                  className="w-full p-4 rounded-xl border-2 border-slate-200 focus:border-blue-500 outline-none text-center font-mono font-bold"
-                />
               </div>
               
               <button 
