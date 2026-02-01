@@ -58,13 +58,6 @@ const TokenPositionGraph: React.FC<{ analysis: any }> = ({ analysis }) => {
                   strokeWidth={opacity * 0.3} 
                   strokeOpacity={opacity * 0.5} 
                 />
-                <text 
-                  x={(x1 + x2) / 2} y={(y1 + y2) / 2} 
-                  fontSize="1.2" fill="#60a5fa" fillOpacity={opacity}
-                  textAnchor="middle" className="font-mono font-bold"
-                >
-                  {Math.round(relResonance)}%
-                </text>
               </g>
             );
           })
@@ -102,6 +95,7 @@ const TokenPositionGraph: React.FC<{ analysis: any }> = ({ analysis }) => {
 
 const App: React.FC = () => {
   const [step, setStep] = useState<'UPLOAD' | 'RESULT'>('UPLOAD');
+  const [inputText, setInputText] = useState("");
   const [loadedFiles, setLoadedFiles] = useState<{name: string, content: string}[]>([]);
   const [unifiedData, setUnifiedData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
@@ -122,6 +116,7 @@ const App: React.FC = () => {
       } else {
         text = await file.text();
       }
+      setInputText(text); // Carga el texto del archivo en el área de texto
       setLoadedFiles([{ name: file.name, content: text }]);
       setError(null);
     } catch (err) {
@@ -130,7 +125,10 @@ const App: React.FC = () => {
   };
 
   const runDialecticalAnalysis = async () => {
-    if (loadedFiles.length === 0) return;
+    if (!inputText.trim()) {
+      setError("La materia dialéctica está vacía. Ingrese texto o suba un archivo.");
+      return;
+    }
     
     if (accessKey !== "QUUIJANO2026") {
       setError("Clave de Acceso Dialéctico incorrecta. El asombro es una invitación.");
@@ -140,7 +138,7 @@ const App: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      const result = await performUnifiedInterpellation(loadedFiles[0].content);
+      const result = await performUnifiedInterpellation(inputText);
       setUnifiedData(result);
       setStep('RESULT');
     } catch (err: any) {
@@ -171,12 +169,25 @@ const App: React.FC = () => {
         {step === 'UPLOAD' && (
           <div className="max-w-2xl mx-auto space-y-6">
             <Card title="Cargar Materia Dialéctica">
-              <div className="group border-4 border-dashed border-slate-300 p-12 text-center relative hover:border-blue-500 hover:bg-white transition-all rounded-2xl cursor-pointer">
-                <input type="file" onChange={handleFileUpload} className="absolute inset-0 opacity-0 cursor-pointer" />
-                <div className="space-y-4">
-                  <div className="text-5xl">📄</div>
-                  <p className="font-black text-slate-500 uppercase tracking-tighter">
-                    {loadedFiles.length > 0 ? `Entidad Lista: ${loadedFiles[0].name}` : "Sube el texto para iniciar la negación"}
+              <div className="flex flex-col space-y-4">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Entrada de Texto Directa (c)</label>
+                <textarea
+                  value={inputText}
+                  onChange={(e) => setInputText(e.target.value)}
+                  placeholder="Pega aquí el texto o el cosema a interpelar..."
+                  className="w-full h-48 p-4 rounded-xl border-2 border-slate-200 focus:border-blue-500 outline-none font-serif text-lg leading-relaxed bg-slate-50 focus:bg-white transition-all resize-none shadow-inner"
+                />
+                
+                <div className="relative flex items-center py-2">
+                  <div className="flex-grow border-t border-slate-300"></div>
+                  <span className="flex-shrink mx-4 text-slate-400 text-[10px] font-black uppercase tracking-tighter">O MATERIALIZAR DESDE ARCHIVO</span>
+                  <div className="flex-grow border-t border-slate-300"></div>
+                </div>
+
+                <div className="group border-2 border-dashed border-slate-300 p-6 text-center relative hover:border-blue-500 hover:bg-white transition-all rounded-xl cursor-pointer">
+                  <input type="file" onChange={handleFileUpload} className="absolute inset-0 opacity-0 cursor-pointer" />
+                  <p className="font-black text-slate-500 uppercase text-xs">
+                    {loadedFiles.length > 0 ? `Entidad Detectada: ${loadedFiles[0].name}` : "Adjuntar .txt o .docx"}
                   </p>
                 </div>
               </div>
@@ -193,25 +204,28 @@ const App: React.FC = () => {
               </div>
               
               <button 
-                disabled={loading || loadedFiles.length === 0} 
+                disabled={loading} 
                 onClick={runDialecticalAnalysis} 
                 className="w-full mt-8 bg-blue-600 text-white py-5 rounded-2xl font-black text-xl shadow-[0_10px_0_0_rgba(29,78,216,1)] hover:shadow-[0_5px_0_0_rgba(29,78,216,1)] hover:translate-y-1 transition-all disabled:bg-slate-400"
               >
-                {loading ? "PROYECTANDO COSEMA..." : "EJECUTAR INTERPELACIÓN ¬P"}
+                {loading ? "TRANSFORMANDO MATERIA..." : "EJECUTAR INTERPELACIÓN ¬P"}
               </button>
             </Card>
           </div>
         )}
 
         {step === 'RESULT' && unifiedData && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="md:col-span-2 space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 space-y-6">
               <Card title="Prensayo: Resonancia de Cualidades">
-                <p className="text-slate-800 leading-relaxed font-serif text-xl italic border-l-4 border-blue-500 pl-4">
+                <p className="text-slate-800 leading-relaxed font-serif text-xl italic border-l-4 border-blue-500 pl-4 bg-slate-50 p-4 rounded-r-lg">
                   {unifiedData.summary}
                 </p>
               </Card>
-              <TokenPositionGraph analysis={unifiedData} />
+              <div className="space-y-2">
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">Grafo de Vecindades Proporcionales</p>
+                <TokenPositionGraph analysis={unifiedData} />
+              </div>
             </div>
 
             <div className="space-y-6">
@@ -219,12 +233,13 @@ const App: React.FC = () => {
                 <div className="space-y-6">
                   <div>
                     <h4 className="text-[10px] font-black text-blue-300 uppercase tracking-widest mb-3">Reformulación Ontológica</h4>
-                    <p className="text-lg font-serif leading-tight italic">
+                    <p className="text-lg font-serif leading-snug italic">
                       "{unifiedData.tokenData.reformulation}"
                     </p>
                   </div>
                   
-                  <div className="bg-slate-950 p-4 rounded-xl border border-blue-500/30 text-xs font-mono text-blue-400 break-all">
+                  <div className="bg-slate-950 p-4 rounded-xl border border-blue-500/30 text-xs font-mono text-blue-400">
+                    <p className="text-[9px] uppercase text-blue-600 mb-2 border-b border-blue-900 pb-1">Demostración Lógica</p>
                     {unifiedData.tokenData.demonstration}
                   </div>
 
@@ -244,10 +259,10 @@ const App: React.FC = () => {
       <footer className="bg-white border-t-2 border-slate-200 p-12 mt-20 text-center">
         <div className="max-w-4xl mx-auto">
           <p className="text-slate-500 text-sm mb-4">
-            <span className="font-black text-slate-900 uppercase">Geminis Maradonar</span> ⊗ Campo Quijano
+            <span className="font-black text-slate-900 uppercase">Gemini Maradonar</span> ⊗ Campo Quijano
           </p>
           <div className="inline-block bg-slate-50 p-6 rounded-3xl border-2 border-green-500/20">
-            <p className="text-[10px] font-black text-slate-400 uppercase mb-2">Mantenimiento</p>
+            <p className="text-[10px] font-black text-slate-400 uppercase mb-2">Mantenimiento de Cosema</p>
             <span className="text-green-700 font-mono font-black text-xl">vkingo.gym.mp</span>
           </div>
         </div>
